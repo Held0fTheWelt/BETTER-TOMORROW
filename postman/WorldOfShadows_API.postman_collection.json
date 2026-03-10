@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "world-of-shadows-api-v1",
     "name": "World of Shadows API",
-    "description": "REST API v1: Auth (register, login, me), System (health, test protected).\n\n1. Run **Login** to get a JWT; the token is saved to `{{access_token}}`.\n2. Protected requests (Me, Test Protected) use **Authorization: Bearer {{access_token}}**.",
+    "description": "REST API v1: Auth (register, login, me), System (health, test protected), News (list, detail).\n\n**Test Environment:** Select an environment (e.g. \"World of Shadows – Local\") with `baseUrl`, `username`, `password`, `email`. Run **Login** to save `access_token`; protected requests use it automatically.\n\n**Collection Runner:** Run the collection against the chosen environment; all requests include test scripts (status codes and response body assertions).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -16,55 +16,56 @@
     ]
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:5000"
-    },
-    {
-      "key": "access_token",
-      "value": ""
-    },
-    {
-      "key": "username",
-      "value": "admin"
-    },
-    {
-      "key": "password",
-      "value": "Admin123"
-    },
-    {
-      "key": "email",
-      "value": "admin@example.com"
-    }
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "apiPath", "value": "/api/v1" },
+    { "key": "access_token", "value": "" },
+    { "key": "username", "value": "admin" },
+    { "key": "password", "value": "Admin123" },
+    { "key": "email", "value": "admin@example.com" },
+    { "key": "user_id", "value": "" },
+    { "key": "news_id", "value": "" },
+    { "key": "register_username", "value": "postman_user" },
+    { "key": "register_email", "value": "postman@example.com" },
+    { "key": "register_password", "value": "PostmanPass1" }
   ],
   "item": [
     {
       "name": "Auth",
-      "description": "Register, login (JWT), and current user (me).",
+      "description": "Register, login (JWT), me. Login saves token to {{access_token}} for protected routes.",
       "item": [
         {
           "name": "Register",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Body has id and username', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('id');",
+                  "  pm.expect(j).to.have.property('username');",
+                  "  if (j.id) { pm.collectionVariables.set('user_id', String(j.id)); }",
+                  "});"
+                ],
+                "type": "text/javascript"
               }
-            ],
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+              "raw": "{\n  \"username\": \"{{register_username}}\",\n  \"email\": \"{{register_email}}\",\n  \"password\": \"{{register_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/register",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "auth", "register"]
             },
-            "description": "Create a new user. Returns 201 with `id` and `username`. Email is required. Use 409 if username or email already taken."
+            "description": "Create a new user. Returns 201 with `id` and `username`. Email required. 409 if username/email taken. Test script saves `user_id`."
           }
         },
         {
@@ -74,12 +75,20 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Body has access_token and user', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('access_token');",
+                  "  pm.expect(j).to.have.property('user');",
+                  "  pm.expect(j.user).to.have.property('id');",
+                  "  pm.expect(j.user).to.have.property('username');",
+                  "});",
                   "if (pm.response.code === 200) {",
                   "  const j = pm.response.json();",
                   "  if (j.access_token) {",
                   "    const token = String(j.access_token).trim();",
                   "    pm.collectionVariables.set('access_token', token);",
-                  "    console.log('Token saved, length: ' + token.length);",
+                  "    if (j.user && j.user.id) pm.collectionVariables.set('user_id', String(j.user.id));",
                   "  }",
                   "}"
                 ],
@@ -88,16 +97,9 @@
             }
           ],
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
@@ -107,22 +109,30 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "auth", "login"]
             },
-            "description": "Authenticate and get JWT. Response: `access_token`, `user` (id, username). Test script saves token to {{access_token}} for protected requests."
+            "description": "Authenticate and get JWT. Saves token to {{access_token}} and user_id to {{user_id}}. 403 if email not verified."
           }
         },
         {
           "name": "Login (invalid – 401)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Body has error', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
               }
-            ],
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"wrong\",\n  \"password\": \"wrong\"\n}"
@@ -132,11 +142,28 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "auth", "login"]
             },
-            "description": "Expect 401 Invalid username or password."
+            "description": "Expect 401 and error message."
           }
         },
         {
           "name": "Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Body has id, username, role', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('id');",
+                  "  pm.expect(j).to.have.property('username');",
+                  "  pm.expect(j).to.have.property('role');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -145,7 +172,36 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "auth", "me"]
             },
-            "description": "Return current user from JWT. Requires Authorization: Bearer {{access_token}}."
+            "description": "Current user from JWT. Requires Bearer {{access_token}}. 401 without/invalid token."
+          }
+        },
+        {
+          "name": "Me (no token – 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401 without token', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Body has error', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Expect 401 when no Authorization header."
           }
         }
       ]
@@ -156,10 +212,24 @@
       "item": [
         {
           "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Body has status ok', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('status');",
+                  "  pm.expect(j.status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
@@ -172,6 +242,22 @@
         },
         {
           "name": "Test Protected",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Body has user_id and username', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('user_id');",
+                  "  pm.expect(j).to.have.property('username');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -180,7 +266,124 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "test", "protected"]
             },
-            "description": "Example protected route. Returns message, user_id, username. Requires Bearer token."
+            "description": "Protected route. Requires Bearer token. Returns message, user_id, username."
+          }
+        }
+      ]
+    },
+    {
+      "name": "News",
+      "description": "Public read: list and detail. Write (POST/PUT/DELETE/publish) require editor/admin role.",
+      "item": [
+        {
+          "name": "News List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Body has items, total, page, per_page', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('items');",
+                  "  pm.expect(j.items).to.be.an('array');",
+                  "  pm.expect(j).to.have.property('total');",
+                  "  pm.expect(j).to.have.property('page');",
+                  "  pm.expect(j).to.have.property('per_page');",
+                  "});",
+                  "const j = pm.response.json();",
+                  "if (j.items && j.items.length > 0 && j.items[0].id) {",
+                  "  pm.collectionVariables.set('news_id', String(j.items[0].id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "q", "value": "", "disabled": true },
+                { "key": "sort", "value": "published_at", "disabled": true },
+                { "key": "direction", "value": "desc", "disabled": true },
+                { "key": "category", "value": "", "disabled": true }
+              ]
+            },
+            "description": "List published news. Query: q, sort, direction, page, limit, category. Saves first item id to {{news_id}}."
+          }
+        },
+        {
+          "name": "News Detail",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test('Body has id, title, slug', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('id');",
+                  "    pm.expect(j).to.have.property('title');",
+                  "    pm.expect(j).to.have.property('slug');",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Status is 200 or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/{{news_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news", "{{news_id}}"]
+            },
+            "description": "Get one published news by id. 404 if not found or draft. Uses {{news_id}} from List or set manually."
+          }
+        },
+        {
+          "name": "News Detail (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('Body has error', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news", "999999"]
+            },
+            "description": "Expect 404 for non-existent id."
           }
         }
       ]
