@@ -1,3 +1,5 @@
+![Logo](https://github.com/Held0fTheWelt/BLACKVEIN/blob/master/promo/Logo.png)
+
 # BLACKVEIGN - World of Shadows
 
 Flask server foundation: server-rendered web pages with session auth, and a versioned REST API with JWT auth. No game logic or domain features yet; ready for extension.
