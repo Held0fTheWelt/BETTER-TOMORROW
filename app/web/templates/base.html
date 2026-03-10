@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}World of Shadows{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <a href="{{ url_for('web.home') }}" class="logo" aria-label="World of Shadows">World of Shadows</a>
+        {% if session.get('username') %}
+        <span class="user-info">{{ session.username }}</span>
+        <a href="{{ url_for('web.logout') }}" class="btn btn-outline">Log out</a>
+        {% else %}
+        <a href="{{ url_for('web.login') }}" class="btn btn-outline">Log in</a>
+        {% endif %}
+    </header>
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="flash-messages">
+            {% for category, message in messages %}
+            <li class="flash flash-{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+        <p><span class="footer-brand">World of Shadows</span> – Server foundation</p>
+    </footer>
+</body>
+</html>

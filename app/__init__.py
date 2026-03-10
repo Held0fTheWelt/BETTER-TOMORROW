@@ -1,0 +1,43 @@
+import os
+from flask import jsonify, render_template
+
+from app.config import Config
+from app.extensions import init_app as init_extensions, limiter
+from app.web import web_bp
+from app.api import register_api
+
+
+def create_app(config_object=None):
+    from flask import Flask
+    _root = os.path.dirname(os.path.abspath(__file__))
+    app = Flask(__name__, template_folder=os.path.join(_root, "web", "templates"), static_folder=os.path.join(_root, "static"))
+    app.config.from_object(config_object or Config)
+    init_extensions(app)
+    limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]
+
+    # JWT error responses
+    from app.extensions import jwt
+    @jwt.unauthorized_loader
+    def unauthorized_callback(_):
+        return jsonify({"error": "Authorization required. Missing or invalid token."}), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(_err):
+        return jsonify({"error": "Invalid or expired token."}), 401
+
+    app.register_blueprint(web_bp)
+    register_api(app)
+
+    @app.errorhandler(429)
+    def ratelimit_handler(_request):
+        return jsonify({"error": "Too many requests. Please try again later."}), 429
+
+    @app.errorhandler(404)
+    def not_found(_e):
+        return render_template("404.html"), 404
+
+    @app.errorhandler(500)
+    def server_error(_e):
+        return render_template("500.html"), 500
+
+    return app

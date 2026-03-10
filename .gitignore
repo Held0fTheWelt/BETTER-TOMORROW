@@ -1,3 +1,13 @@
 .venv
 .idea
 WorldOfShadows.code-workspace
+instance/
+*.db
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache
+.coverage
+htmlcov/
+/mvps
