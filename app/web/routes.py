@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from app.services import verify_user
-from app.web.auth import require_web_login
+from app.web.auth import is_safe_redirect, require_web_login
 
 web_bp = Blueprint("web", __name__)
 
@@ -35,7 +35,9 @@ def login():
         session["user_id"] = user.id
         session["username"] = user.username
         flash(f"Welcome, {user.username}.", "success")
-        next_url = request.args.get("next") or url_for("web.dashboard")
+        next_url = request.args.get("next")
+        if not (next_url and is_safe_redirect(next_url)):
+            next_url = url_for("web.dashboard")
         return redirect(next_url)
     flash("Invalid username or password.", "error")
     return render_template("login.html")
