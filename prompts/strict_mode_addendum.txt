@@ -1,9 +1,0 @@
-Do not preserve source-project domain naming.
-Do not keep legacy files just because they already exist.
-Favor replacement over adaptation when a file is too domain-specific.
-Every milestone in /mvps must reflect the actual implemented state, not intentions only.
-Do not mark a milestone as complete if old movie/blog behavior is still wired into the runtime path.
-Do not silently skip acceptance criteria.
-If an MVP is incomplete, mark it explicitly as incomplete and explain why.
-Prefer deletion over legacy clutter.
-Prefer a clean generic base over partial compatibility with demo domains.
