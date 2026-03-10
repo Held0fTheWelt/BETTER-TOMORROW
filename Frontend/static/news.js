@@ -1,12 +1,13 @@
 /**
  * World of Shadows – news list and detail
- * Consumes backend GET /api/v1/news (list) and GET /api/v1/news/<id> (detail).
- * List: query params q, sort, direction, page, limit, category. Response: { items, total, page, per_page }.
+ * Uses FrontendConfig.getApiBaseUrl() and FrontendConfig.apiFetch() (main.js) for backend API.
+ * List: GET /api/v1/news?q=&sort=&direction=&page=&limit=&category= → { items, total, page, per_page }.
+ * Detail: GET /api/v1/news/<id> → single article object.
  */
 (function() {
     function getApiBase() {
-        var c = window.__FRONTEND_CONFIG__;
-        return (c && c.backendApiUrl) ? c.backendApiUrl : '';
+        var fc = window.FrontendConfig;
+        return (fc && fc.getApiBaseUrl) ? fc.getApiBaseUrl() : '';
     }
 
     function formatDate(iso) {
@@ -34,8 +35,7 @@
     function initList() {
         var container = document.getElementById('news-list');
         if (!container) return;
-        var apiBase = container.getAttribute('data-api-url') || getApiBase();
-        if (!apiBase) apiBase = getApiBase();
+        var apiBase = getApiBase();
 
         var loading = document.getElementById('news-loading');
         var content = document.getElementById('news-list-content');
@@ -146,25 +146,26 @@
         function fetchList() {
             var params = getParams();
             showLoading(true);
-            var url = buildListUrl(apiBase, params);
-            fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } })
-                .then(function(res) {
-                    if (!res.ok) {
-                        showError('Could not load news.');
-                        return null;
-                    }
-                    return res.json();
-                })
-                .then(function(data) {
-                    if (data === null || data === undefined) return;
-                    var items = data.items || [];
-                    var total = typeof data.total === 'number' ? data.total : items.length;
-                    var page = typeof data.page === 'number' ? data.page : 1;
-                    var perPage = typeof data.per_page === 'number' ? data.per_page : 20;
-                    if (items.length === 0) showEmpty();
-                    else showItems(items, page, total, perPage);
-                })
-                .catch(function() { showError('Could not load news.'); });
+            var pathWithQuery = buildListUrl('', params);
+            var apiFetchFn = window.FrontendConfig && window.FrontendConfig.apiFetch;
+            var req = apiFetchFn
+                ? apiFetchFn(pathWithQuery)
+                : fetch((apiBase || '') + pathWithQuery, { method: 'GET', headers: { 'Accept': 'application/json' } })
+                    .then(function(res) {
+                        if (!res.ok) throw new Error('Could not load news.');
+                        return res.json();
+                    });
+            req.then(function(data) {
+                if (data === null || data === undefined) return;
+                var items = data.items || [];
+                var total = typeof data.total === 'number' ? data.total : items.length;
+                var page = typeof data.page === 'number' ? data.page : 1;
+                var perPage = typeof data.per_page === 'number' ? data.per_page : 20;
+                if (items.length === 0) showEmpty();
+                else showItems(items, page, total, perPage);
+            }).catch(function(err) {
+                showError(typeof err === 'string' ? err : 'Could not load news.');
+            });
         }
 
         function onApply() {
@@ -209,8 +210,7 @@
         var loading = document.getElementById('news-detail-loading');
         var content = document.getElementById('news-detail-content');
         var errEl = document.getElementById('news-detail-error');
-        var apiBase = container ? container.getAttribute('data-api-url') : getApiBase();
-        if (!apiBase) apiBase = getApiBase();
+        var apiBase = getApiBase();
 
         function showLoading(show) {
             if (loading) loading.hidden = !show;
@@ -257,22 +257,21 @@
         }
 
         showLoading(true);
-        fetch(apiBase + '/api/v1/news/' + id, { method: 'GET', headers: { 'Accept': 'application/json' } })
-            .then(function(res) {
-                if (res.status === 404) {
-                    showError('Article not found.');
-                    return null;
-                }
-                if (!res.ok) {
-                    showError('Could not load article.');
-                    return null;
-                }
-                return res.json();
-            })
-            .then(function(data) {
-                if (data) showArticle(data);
-            })
-            .catch(function() { showError('Could not load article.'); });
+        var path = '/api/v1/news/' + id;
+        var apiFetchFn = window.FrontendConfig && window.FrontendConfig.apiFetch;
+        var req = apiFetchFn
+            ? apiFetchFn(path)
+            : fetch((apiBase || '') + path, { method: 'GET', headers: { 'Accept': 'application/json' } })
+                .then(function(res) {
+                    if (res.status === 404) throw new Error('Article not found.');
+                    if (!res.ok) throw new Error('Could not load article.');
+                    return res.json();
+                });
+        req.then(function(data) {
+            if (data) showArticle(data);
+        }).catch(function(err) {
+            showError(typeof err === 'string' ? err : (err && err.message) || 'Could not load article.');
+        });
     }
 
     window.NewsApp = { initList: initList, loadDetail: loadDetail };

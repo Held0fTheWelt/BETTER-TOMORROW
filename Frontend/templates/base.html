@@ -42,6 +42,7 @@
     <script>
         window.__FRONTEND_CONFIG__ = {{ frontend_config | tojson }};
     </script>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
