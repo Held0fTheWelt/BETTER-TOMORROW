@@ -63,6 +63,8 @@ All notable changes to the World of Shadows project are documented in this file.
 
 - **Test suite:** Pytest tests for web and API (19 tests), in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
 - **Planning docs:** Milestone list and execution prompts for staged rebuild (no code changes).
+- Test suite: Pytest tests for web and API, in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
+- Planning docs: Milestone list and execution prompts for staged rebuild (no code changes).
 
 ---
 
