@@ -6,6 +6,72 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+_Nothing yet._
+
+### Security
+
+- **Dev seed user:** `flask seed-dev-user` no longer uses fixed credentials. Credentials must be provided via env (`SEED_DEV_USERNAME`, `SEED_DEV_PASSWORD`), CLI options (`--username`, `--password`, or password prompt), or `--generate` to create a user with a random password that is printed once.
+- **Tests:** Startup fails when `SECRET_KEY` is missing (unless testing config). GET `/logout` returns 405; POST `/logout` clears session. Web login without valid CSRF token is rejected when CSRF is enabled. API login and protected routes are independent of web CSRF. CORS: no `Access-Control-Allow-Origin` when `CORS_ORIGINS` is unset; when set, allowed origins are reflected in responses.
+
+### Changed (error and health consistency)
+
+- **Error handling:** Routes under `/api/` now receive JSON error responses for 404 and 500 (`{"error": "..."}`). Web routes continue to receive HTML error pages (404.html, 500.html). 429 remains JSON for all.
+- **Documentation:** Runbook documents health endpoints (web and API both return `{"status":"ok"}`), and error behavior: web vs API (HTML vs JSON), plus rate-limit 429.
+
+---
+
+## [0.0.3] - 2025-03-10
+
+### Security
+
+- **Secrets:** Removed hardcoded fallback secrets from production config. `SECRET_KEY` and `JWT_SECRET_KEY` must be set in the environment. App raises at startup if `SECRET_KEY` is missing (unless testing or `DEV_SECRETS_OK=1`).
+- **Dev-only fallback:** Added `DevelopmentConfig` and `DEV_SECRETS_OK` env var. When set, dev fallback secrets are used and `flask seed-dev-user` is allowed. Not for production.
+- **Default user seeding removed:** `flask init-db` only creates tables; it no longer creates an admin/admin user. Use `flask seed-dev-user` with `DEV_SECRETS_OK=1` for local dev only.
+- **Logout:** Web logout is POST only. Logout link replaced with a form and CSRF token to reduce abuse.
+- **CSRF:** Web forms (login, logout) protected with CSRF. API blueprint exempt; API remains JWT-based.
+- **CORS:** Origins are configurable via `CORS_ORIGINS` (comma-separated). No CORS when unset (same-origin only).
+- **Session cookies:** `SESSION_COOKIE_HTTPONLY` and `SESSION_COOKIE_SAMESITE` set explicitly; `SESSION_COOKIE_SECURE` when `PREFER_HTTPS=1`.
+
+### Added
+
+- **Web auth:** Protected route `/dashboard`; central `require_web_login` decorator in `app/web/auth.py`. Anonymous access to `/dashboard` redirects to `/login`.
+- **Login flow:** If already logged in, GET `/login` redirects to dashboard. Optional `next` query param for redirect-after-login.
+- **Dashboard template:** `app/web/templates/dashboard.html`.
+- **CLI:** `flask seed-dev-user` to create a default admin user when `DEV_SECRETS_OK=1`.
+- **Documentation:** `README.md` (purpose, structure, setup, env, web/API usage). `docs/runbook.md` (local workflow, example API flow). `docs/security.md` (auth model, CSRF, CORS, cookies, dev-only behavior).
+
+### Changed
+
+- **Config:** `SECRET_KEY`, `JWT_SECRET_KEY` from env only in base config. Added `CORS_ORIGINS`, explicit session cookie settings. `DevelopmentConfig` and `TestingConfig` separated.
+- **Startup:** Debug mode driven by `FLASK_DEBUG` instead of `FLASK_ENV`.
+- **API:** User lookup uses `db.session.get(User, id)` (SQLAlchemy 2.x) instead of `User.query.get(id)`.
+- **Web health:** Docstring aligned: returns JSON status.
+- **.env.example:** Updated with required vars, `CORS_ORIGINS`, `FLASK_DEBUG`, `DEV_SECRETS_OK`.
+
+### Removed
+
+- **Default admin from init-db:** No automatic admin/admin creation.
+- **Empty layer:** Removed unused `app/repositories/` package.
+
+### Documentation
+
+- README.md: project purpose, scope, structure, setup, environment table, web/API usage, limitations, links to runbook and security.
+- docs/runbook.md: one-time setup, start server, web flow, API curl examples, health checks, troubleshooting.
+- docs/security.md: session vs JWT auth, CSRF scope, secrets and dev fallback, default users, CORS, session cookies, rate limiting.
+
+---
+
+## [0.0.2] - 2025-03-10
+
+### Added
+
+- Test suite: Pytest tests for web and API, in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
+- Planning docs: Milestone list and execution prompts for staged rebuild (no code changes).
+
+---
+
 ## [0.0.1] - 2025-03-10
 
 ### Added
