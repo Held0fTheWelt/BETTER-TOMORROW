@@ -34,8 +34,8 @@ def test_login_post_invalid_credentials(client):
     assert b"Invalid" in response.data or b"error" in response.data.lower()
 
 
-def test_login_post_success_redirects_to_home(client, test_user):
-    """POST /login with valid credentials redirects to home and sets session."""
+def test_login_post_success_redirects_to_dashboard(client, test_user):
+    """POST /login with valid credentials redirects to dashboard and sets session."""
     user, password = test_user
     response = client.post(
         "/login",
@@ -43,17 +43,41 @@ def test_login_post_success_redirects_to_home(client, test_user):
         follow_redirects=True,
     )
     assert response.status_code == 200
-    assert b"Welcome" in response.data or b"World of Shadows" in response.data
+    assert b"Welcome" in response.data or b"Dashboard" in response.data
 
 
-def test_logout_redirects_and_clears_session(client, test_user):
-    """GET /logout redirects to home and clears session."""
+def test_login_get_when_logged_in_redirects_to_dashboard(client, test_user):
+    """GET /login when already logged in redirects to dashboard."""
     user, password = test_user
     client.post("/login", data={"username": user.username, "password": password})
-    response = client.get("/logout", follow_redirects=True)
+    response = client.get("/login", follow_redirects=False)
+    assert response.status_code == 302
+    assert "dashboard" in response.location or response.headers.get("Location", "").endswith("/dashboard")
+
+
+def test_logout_post_redirects_and_clears_session(client, test_user):
+    """POST /logout redirects to home and clears session (logout is POST only)."""
+    user, password = test_user
+    client.post("/login", data={"username": user.username, "password": password})
+    response = client.post("/logout", follow_redirects=True)
     assert response.status_code == 200
-    # After logout, home should not show "logged in" state
     assert b"Log in" in response.data or b"login" in response.data.lower()
+
+
+def test_dashboard_anonymous_redirects_to_login(client):
+    """GET /dashboard without session redirects to login."""
+    response = client.get("/dashboard", follow_redirects=False)
+    assert response.status_code == 302
+    assert "login" in response.location or "/login" in (response.headers.get("Location") or "")
+
+
+def test_dashboard_logged_in_returns_200(client, test_user):
+    """GET /dashboard with valid session returns 200 and dashboard content."""
+    user, password = test_user
+    client.post("/login", data={"username": user.username, "password": password})
+    response = client.get("/dashboard")
+    assert response.status_code == 200
+    assert b"Dashboard" in response.data or user.username.encode() in response.data
 
 
 def test_404_returns_custom_page(client):

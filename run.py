@@ -1,25 +1,41 @@
 """Application entry point."""
 import os
 from app import create_app
+from app.config import Config, DevelopmentConfig
 from app.extensions import db
 
-app = create_app()
+app = create_app(
+    DevelopmentConfig if os.environ.get("DEV_SECRETS_OK") else Config
+)
 
 
 @app.cli.command("init-db")
 def init_db():
-    """Create tables and optionally seed a test user."""
+    """Create database tables. Does not create any users."""
     db.create_all()
+    print("Database initialized.")
+
+
+@app.cli.command("seed-dev-user")
+def seed_dev_user():
+    """Create a default admin user. For local dev only; set DEV_SECRETS_OK=1."""
+    if not os.environ.get("DEV_SECRETS_OK", "").strip() in ("1", "true", "yes"):
+        print("Refusing to seed: set DEV_SECRETS_OK=1 for local development only.")
+        return
     from app.models import User
-    if User.query.filter_by(username="admin").first() is None:
-        from werkzeug.security import generate_password_hash
+    from werkzeug.security import generate_password_hash
+    with app.app_context():
+        db.create_all()
+        if User.query.filter_by(username="admin").first():
+            print("User admin already exists.")
+            return
         u = User(username="admin", password_hash=generate_password_hash("admin"))
         db.session.add(u)
         db.session.commit()
-        print("Created default user: admin / admin")
-    print("Database initialized.")
+        print("Created dev user: admin / admin")
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_ENV") == "development")
+    debug = os.environ.get("FLASK_DEBUG", "").strip().lower() in ("1", "true", "yes")
+    app.run(host="0.0.0.0", port=port, debug=debug)
