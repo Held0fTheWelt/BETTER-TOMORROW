@@ -9,6 +9,7 @@ All notable changes to the World of Shadows project are documented in this file.
 ### Added
 
 - **News service layer:** `Backend/app/services/news_service.py` with `list_news` (published_only, search, sort, order, page, per_page, category), `get_news_by_id`, `get_news_by_slug`, `create_news`, `update_news`, `delete_news`, `publish_news`, `unpublish_news`. Filtering, sorting, pagination, and slug validation live in the service; route handlers stay thin. Exported from `app.services`.
+- **Public news API:** `GET /api/v1/news` (list) and `GET /api/v1/news/<id>` (detail). List supports query params: `q` (search), `sort`, `direction`, `page`, `limit`, `category`. Only published news is returned; drafts/unpublished return 404 on detail. Response: list `{ "items", "total", "page", "per_page" }`, detail single news object. Uses news service; rate limit 60/min.
 
 ---
 
