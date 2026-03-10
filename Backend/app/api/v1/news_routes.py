@@ -96,8 +96,12 @@ def news_detail(news_id):
     if not news or not news.is_published:
         return jsonify({"error": "Not found"}), 404
     now = datetime.now(timezone.utc)
-    if news.published_at and news.published_at > now:
-        return jsonify({"error": "Not found"}), 404
+    if news.published_at is not None:
+        pub_at = news.published_at
+        if pub_at.tzinfo is None:
+            pub_at = pub_at.replace(tzinfo=timezone.utc)
+        if pub_at > now:
+            return jsonify({"error": "Not found"}), 404
     return jsonify(news.to_dict()), 200
 
 
