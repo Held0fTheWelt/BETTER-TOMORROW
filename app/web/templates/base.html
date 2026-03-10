@@ -14,6 +14,12 @@
     {% block site_header %}
     <header class="header">
         <a href="{{ url_for('web.home') }}" class="logo" aria-label="World of Shadows">World of Shadows</a>
+        <a href="{{ url_for('web.news') }}" class="btn btn-outline">News</a>
+        {% if session.get('username') %}
+        <a href="{{ url_for('web.game_menu') }}" class="btn btn-outline">Enter Game</a>
+        {% endif %}
+        <a href="{{ url_for('web.wiki') }}" class="btn btn-outline">Wiki</a>
+        <a href="{{ url_for('web.community') }}" class="btn btn-outline">Community</a>
         {% if session.get('username') %}
         <span class="user-info">{{ session.username }}</span>
         <a href="{{ url_for('web.dashboard') }}" class="btn btn-outline">Dashboard</a>
@@ -21,8 +27,6 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline">Log out</button>
         </form>
-        {% else %}
-        <a href="{{ url_for('web.login') }}" class="btn btn-outline">Log in</a>
         {% endif %}
     </header>
     {% endblock %}

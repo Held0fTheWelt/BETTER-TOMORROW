@@ -5,21 +5,23 @@
 {% block site_main %}
 <section class="hero" id="hero" data-preload>
   <div class="hero-content">
-    <p class="hero-eyebrow mono">// WORLD OF SHADOWS v1.0</p>
-    <h1 class="hero-title" id="hero-title">
-      Enter the<br><span class="hero-title-accent">Void.</span>
-    </h1>
-    <p class="hero-sub">
-      A dark foundation for your next project.<br>
-      Auth, API, sessions – production-ready from day one.
-    </p>
-    <div class="hero-actions">
-      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">
-        Get started
-      </a>
-      <a href="{{ url_for('web.login') }}" class="btn btn-ghost btn-lg">
-        Sign in →
-      </a>
+    <div class="hero-text">
+      <p class="hero-eyebrow mono">// WORLD OF SHADOWS v1.0</p>
+      <h1 class="hero-title" id="hero-title">
+        <span class="hero-title-line">Enter the World of</span><br><span class="hero-title-accent">BLACKVEIGN.</span>
+      </h1>
+      <p class="hero-sub">
+        A dark foundation for a dark future.<br>
+        Be the darkness, not the prey.
+      </p>
+      <div class="hero-actions">
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">
+          Get started
+        </a>
+        <a href="{{ url_for('web.login') }}" class="btn btn-ghost btn-lg">
+          Sign in →
+        </a>
+      </div>
     </div>
   </div>
   <div class="hero-visual" aria-hidden="true">
@@ -107,7 +109,7 @@
 
 <footer class="void-footer" id="void-footer" data-preload>
   <div class="void-footer-inner">
-    <p class="void-eyebrow mono">// START BUILDING</p>
+    <p class="void-eyebrow mono">// BLACKVEIGN IS WAITING</p>
     <h2 class="void-title">Ready to enter<br><span class="void-title-accent">the shadows?</span></h2>
     <a href="{{ url_for('web.register') }}" class="btn btn-void-cta">
       Create your account

@@ -136,6 +136,31 @@ def reset_password(token):
     return redirect(url_for("web.login"))
 
 
+@web_bp.route("/news")
+def news():
+    """News page (placeholder)."""
+    return render_template("news.html")
+
+
+@web_bp.route("/wiki")
+def wiki():
+    """Wiki page (placeholder)."""
+    return render_template("wiki.html")
+
+
+@web_bp.route("/community")
+def community():
+    """Community page (placeholder)."""
+    return render_template("community.html")
+
+
+@web_bp.route("/game-menu")
+@require_web_login
+def game_menu():
+    """Game menu (placeholder); requires logged-in session."""
+    return render_template("game_menu.html")
+
+
 @web_bp.route("/dashboard")
 @require_web_login
 def dashboard():
