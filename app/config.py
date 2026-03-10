@@ -40,3 +40,13 @@ class Config:
     # Rate limiting
     RATELIMIT_DEFAULT = os.environ.get("RATELIMIT_DEFAULT", "100 per minute")
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+
+
+class TestingConfig(Config):
+    """Config for tests: in-memory DB, high rate limit, fixed JWT key."""
+
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    JWT_SECRET_KEY = "test-jwt-secret-key-at-least-32-bytes-long"
+    RATELIMIT_DEFAULT = "1000 per minute"
+    WTF_CSRF_ENABLED = False

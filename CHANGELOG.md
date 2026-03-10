@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+_Nothing yet._
+
+---
+
+## [0.0.2] - 2025-03-10
+
+### Added
+
+- **Test suite:** Pytest tests for web and API (19 tests), in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
+- **Planning docs:** Milestone list and execution prompts for staged rebuild (no code changes).
+
+---
+
 ## [0.0.1] - 2025-03-10
 
 ### Added
@@ -34,10 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - JWT authentication for API; CORS and rate limiting enabled.
   - Consistent JSON error responses for 401 and 429.
 
-- **Tooling and docs**
-  - `requirements.txt` and `.env.example` for setup.
-  - Postman collection and local environment in `postman/` for API testing.
-  - Milestone documentation in `mvps/` (MVP_01–MVP_05).
+- **Tooling and docs:** requirements.txt, .env.example, Postman collection for API testing.
 
 ### Technical notes
 

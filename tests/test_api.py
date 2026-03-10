@@ -1,0 +1,126 @@
+"""Tests for API v1 routes (REST, JWT)."""
+import pytest
+
+
+def test_api_health_returns_ok(client):
+    """GET /api/v1/health returns 200 and status ok."""
+    response = client.get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "ok"}
+
+
+def test_register_success(client):
+    """POST /api/v1/auth/register creates user and returns 201."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "newuser", "password": "secret123"},
+        content_type="application/json",
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["username"] == "newuser"
+    assert "id" in data
+
+
+def test_register_missing_json_returns_400(client):
+    """POST /api/v1/auth/register without JSON returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        data="not json",
+        content_type="text/plain",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_validation_returns_400(client):
+    """POST /api/v1/auth/register with short username returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "a", "password": "longenough"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_duplicate_username_returns_409(client, test_user):
+    """POST /api/v1/auth/register with existing username returns 409."""
+    user, password = test_user
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": user.username, "password": "otherpass"},
+        content_type="application/json",
+    )
+    assert response.status_code == 409
+    assert "error" in response.get_json()
+
+
+def test_login_success_returns_token(client, test_user):
+    """POST /api/v1/auth/login with valid credentials returns access_token and user."""
+    user, password = test_user
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": user.username, "password": password},
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "access_token" in data
+    assert data["user"]["username"] == user.username
+    assert data["user"]["id"] == user.id
+
+
+def test_login_invalid_returns_401(client):
+    """POST /api/v1/auth/login with wrong credentials returns 401."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "nobody", "password": "wrong"},
+        content_type="application/json",
+    )
+    assert response.status_code == 401
+    assert "error" in response.get_json()
+
+
+def test_login_missing_body_returns_400(client):
+    """POST /api/v1/auth/login without JSON returns 400."""
+    response = client.post(
+        "/api/v1/auth/login",
+        data="x",
+        content_type="text/plain",
+    )
+    assert response.status_code == 400
+
+
+def test_me_without_token_returns_401(client):
+    """GET /api/v1/auth/me without Authorization returns 401."""
+    response = client.get("/api/v1/auth/me")
+    assert response.status_code == 401
+    assert "error" in response.get_json()
+
+
+def test_me_with_token_returns_user(client, auth_headers, test_user):
+    """GET /api/v1/auth/me with valid JWT returns current user."""
+    user, _ = test_user
+    response = client.get("/api/v1/auth/me", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["username"] == user.username
+    assert data["id"] == user.id
+
+
+def test_protected_without_token_returns_401(client):
+    """GET /api/v1/test/protected without token returns 401."""
+    response = client.get("/api/v1/test/protected")
+    assert response.status_code == 401
+
+
+def test_protected_with_token_returns_ok(client, auth_headers, test_user):
+    """GET /api/v1/test/protected with valid JWT returns message and user info."""
+    user, _ = test_user
+    response = client.get("/api/v1/test/protected", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["message"] == "ok"
+    assert data["user_id"] == user.id
+    assert data["username"] == user.username
