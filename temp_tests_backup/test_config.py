@@ -1,4 +1,4 @@
-﻿"""Tests for config and startup behavior."""
+"""Tests for config and startup behavior."""
 import pytest
 
 from app import create_app

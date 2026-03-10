@@ -1,4 +1,4 @@
-﻿"""Tests for API v1 routes (REST, JWT)."""
+"""Tests for API v1 routes (REST, JWT)."""
 import pytest
 
 from app import create_app
@@ -17,7 +17,7 @@ def test_register_success(client):
     """POST /api/v1/auth/register creates user and returns 201."""
     response = client.post(
         "/api/v1/auth/register",
-        json={"username": "newuser", "password": "secret123"},
+        json={"username": "newuser", "password": "Secret123"},
         content_type="application/json",
     )
     assert response.status_code == 201
@@ -41,7 +41,88 @@ def test_register_validation_returns_400(client):
     """POST /api/v1/auth/register with short username returns 400."""
     response = client.post(
         "/api/v1/auth/register",
-        json={"username": "a", "password": "longenough"},
+        json={"username": "a", "password": "Longenough1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_username_with_space_returns_400(client):
+    """POST /api/v1/auth/register with username containing space returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "user name", "password": "Secret123"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    data = response.get_json()
+    assert "error" in data
+    assert "invalid" in data["error"].lower()
+
+
+def test_register_username_too_long_returns_400(client):
+    """POST /api/v1/auth/register with username over 80 chars returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "a" * 81, "password": "Secret123"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_username_special_chars_returns_400(client):
+    """POST /api/v1/auth/register with username containing @ or ! returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "user@name", "password": "Secret123"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    data = response.get_json()
+    assert "error" in data
+    assert "invalid" in data["error"].lower()
+
+
+def test_register_password_too_short_returns_400(client):
+    """POST /api/v1/auth/register with password under 8 chars returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "validuser", "password": "Short1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_password_no_uppercase_returns_400(client):
+    """POST /api/v1/auth/register with password without uppercase returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "validuser", "password": "alllowercase1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_password_no_lowercase_returns_400(client):
+    """POST /api/v1/auth/register with password without lowercase returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "validuser", "password": "ALLUPPERCASE1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_password_no_digit_returns_400(client):
+    """POST /api/v1/auth/register with password without digit returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "validuser", "password": "NoDigitHere"},
         content_type="application/json",
     )
     assert response.status_code == 400
@@ -53,7 +134,7 @@ def test_register_duplicate_username_returns_409(client, test_user):
     user, password = test_user
     response = client.post(
         "/api/v1/auth/register",
-        json={"username": user.username, "password": "otherpass"},
+        json={"username": user.username, "password": "Otherpass1"},
         content_type="application/json",
     )
     assert response.status_code == 409

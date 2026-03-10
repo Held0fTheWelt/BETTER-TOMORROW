@@ -1,4 +1,4 @@
-﻿"""Tests for web (server-rendered) routes."""
+"""Tests for web (server-rendered) routes."""
 import pytest
 
 
@@ -61,6 +61,13 @@ def test_get_logout_rejected(client):
     assert response.status_code == 405
 
 
+def test_logout_post_without_session_redirects_to_home(client):
+    """POST /logout without active session redirects to home (no 400/403)."""
+    response = client.post("/logout", follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Log in" in response.data or b"login" in response.data.lower()
+
+
 def test_logout_post_redirects_and_clears_session(client, test_user):
     """POST /logout redirects to home and clears session (logout is POST only)."""
     user, password = test_user
@@ -93,12 +100,12 @@ def test_login_post_without_csrf_rejected(client_csrf):
     from werkzeug.security import generate_password_hash
     with client_csrf.application.app_context():
         db.create_all()
-        u = User(username="csrftest", password_hash=generate_password_hash("csrfpass"))
+        u = User(username="csrftest", password_hash=generate_password_hash("Csrfpass1"))
         db.session.add(u)
         db.session.commit()
     response = client_csrf.post(
         "/login",
-        data={"username": "csrftest", "password": "csrfpass"},
+        data={"username": "csrftest", "password": "Csrfpass1"},
         follow_redirects=False,
     )
     assert response.status_code == 400

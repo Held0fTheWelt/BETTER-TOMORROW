@@ -1,4 +1,4 @@
-﻿"""Pytest fixtures for World of Shadows."""
+"""Pytest fixtures for World of Shadows."""
 import pytest
 
 from app import create_app
@@ -10,11 +10,24 @@ from werkzeug.security import generate_password_hash
 
 @pytest.fixture
 def app():
-    """Application with testing config and in-memory DB."""
+    """Application with testing config and in-memory DB. Teardown: drop_all() after each test."""
     application = create_app(TestingConfig)
     with application.app_context():
         db.create_all()
-        yield application
+        try:
+            yield application
+        finally:
+            db.session.remove()
+            db.drop_all()
+
+
+@pytest.fixture
+def db_session(app):
+    """Run test in a clean session; rollback after test for isolation."""
+    with app.app_context():
+        yield db.session
+        db.session.rollback()
+        db.session.remove()
 
 
 @pytest.fixture
@@ -35,12 +48,12 @@ def test_user(app):
     with app.app_context():
         user = User(
             username="testuser",
-            password_hash=generate_password_hash("testpass"),
+            password_hash=generate_password_hash("Testpass1"),
         )
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
-        return user, "testpass"
+        return user, "Testpass1"
 
 
 @pytest.fixture
@@ -65,11 +78,15 @@ class TestingConfigWithCSRF(TestingConfig):
 
 @pytest.fixture
 def app_csrf():
-    """Application with CSRF enabled (for testing CSRF protection)."""
+    """Application with CSRF enabled (for testing CSRF protection). Teardown: drop_all()."""
     application = create_app(TestingConfigWithCSRF)
     with application.app_context():
         db.create_all()
-        yield application
+        try:
+            yield application
+        finally:
+            db.session.remove()
+            db.drop_all()
 
 
 @pytest.fixture

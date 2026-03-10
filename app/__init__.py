@@ -1,3 +1,4 @@
+import logging
 import os
 from flask import jsonify, render_template, request
 from flask_wtf.csrf import CSRFProtect
@@ -20,6 +21,12 @@ def create_app(config_object=None):
     app.config.from_object(config_object or Config)
     if not app.config.get("TESTING") and not app.config.get("SECRET_KEY"):
         raise ValueError("SECRET_KEY must be set in environment. Use .env or export.")
+    # Logging: DEBUG in test/dev, WARNING in production
+    app.logger.setLevel(logging.DEBUG if (app.config.get("TESTING") or app.debug) else logging.WARNING)
+    if not app.logger.handlers:
+        h = logging.StreamHandler()
+        h.setFormatter(logging.Formatter("%(levelname)s [%(name)s] %(message)s"))
+        app.logger.addHandler(h)
     init_extensions(app)
     limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]
 
