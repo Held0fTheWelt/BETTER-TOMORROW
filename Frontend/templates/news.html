@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}News – World of Shadows{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>News</h1>
+    <p class="muted">Latest updates and announcements.</p>
+</div>
+<div id="news-list" class="news-list" data-api-url="{{ backend_api_url }}">
+    <p class="loading" id="news-loading">Loading…</p>
+    <div id="news-list-content" class="news-list-content" hidden></div>
+    <p id="news-empty" class="empty" hidden>No news yet.</p>
+    <p id="news-error" class="error" hidden></p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='news.js') }}"></script>
+<script>
+(function() {
+    if (window.NewsApp && window.NewsApp.loadList) {
+        window.NewsApp.loadList();
+    }
+})();
+</script>
+{% endblock %}

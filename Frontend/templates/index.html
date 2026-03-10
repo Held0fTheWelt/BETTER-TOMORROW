@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}World of Shadows{% endblock %}
+{% block body_class %}landing{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <p class="hero-eyebrow mono">// WORLD OF SHADOWS</p>
+        <h1 class="hero-title">
+            <span class="hero-title-line">Enter the World of</span><br>
+            <span class="hero-title-accent">BLACKVEIGN.</span>
+        </h1>
+        <p class="hero-sub">
+            A dark foundation for a dark future.<br>
+            Be the darkness, not the prey.
+        </p>
+        <div class="hero-actions">
+            <a href="{{ backend_api_url }}/register" class="btn btn-primary btn-lg">Get started</a>
+            <a href="{{ backend_api_url }}/login" class="btn btn-ghost btn-lg">Sign in →</a>
+        </div>
+    </div>
+</section>
+
+<section class="section-links">
+    <a href="{{ url_for('news_list') }}" class="card card-link">
+        <h2>News</h2>
+        <p>Latest updates and announcements.</p>
+    </a>
+</section>
+{% endblock %}

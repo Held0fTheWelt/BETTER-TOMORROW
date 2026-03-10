@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" class="{% block html_class %}{% endblock %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}World of Shadows{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+    <header class="header">
+        <a href="{{ url_for('index') }}" class="logo" aria-label="World of Shadows">World of Shadows</a>
+        <a href="{{ url_for('news_list') }}" class="btn btn-outline">News</a>
+        <a href="{{ backend_api_url }}/wiki" class="btn btn-outline">Wiki</a>
+        <a href="{{ backend_api_url }}/community" class="btn btn-outline">Community</a>
+        <a href="{{ backend_api_url }}/login" class="btn btn-outline">Log in</a>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p><span class="footer-brand">World of Shadows</span> – Public site</p>
+    </footer>
+
+    <script>
+        window.__FRONTEND_CONFIG__ = {{ frontend_config | tojson }};
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
