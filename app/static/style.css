@@ -215,13 +215,15 @@ body.landing main { padding: 0; max-width: 100%; }
 .hero {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(380px, 1fr) 1fr;
     align-items: center;
     padding: 6rem 6vw 4rem;
     position: relative;
     overflow: hidden;
     gap: 2rem;
 }
+.hero-content { min-width: 0; }
+.hero-text { max-width: 42ch; }
 .hero-eyebrow { color: var(--violet-bright); margin: 0 0 1.5rem; font-size: 0.8rem; letter-spacing: 0.15em; }
 .hero-title {
     font-family: var(--display-font);
@@ -234,6 +236,7 @@ body.landing main { padding: 0; max-width: 100%; }
     transform-origin: left center;
     transition: transform 0.1s ease-out;
 }
+.hero-title-line { white-space: nowrap; }
 .hero-title-accent {
     background: linear-gradient(135deg, var(--violet-bright), #c084fc);
     -webkit-background-clip: text;
@@ -253,10 +256,13 @@ body.landing main { padding: 0; max-width: 100%; }
 
 .hero-visual {
     position: relative;
-    height: 520px;
+    min-height: 60vh;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-end;
+    align-self: stretch;
+    padding-right: 2vw;
+    padding-top: 0;
 }
 .refraction-orb {
     position: absolute;
@@ -510,7 +516,7 @@ body.landing main { padding: 0; max-width: 100%; }
 
 @media (max-width: 900px) {
     .hero { grid-template-columns: 1fr; padding: 8rem 5vw 4rem; }
-    .hero-visual { display: none; }
+    .hero-visual { min-height: 40vh; }
     .benefits-grid { grid-template-columns: repeat(2, 1fr); }
     .features-grid { grid-template-columns: 1fr 1fr; }
 }
