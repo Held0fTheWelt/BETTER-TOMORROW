@@ -1,5 +1,6 @@
 import os
 from flask import jsonify, render_template
+from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
 from app.extensions import init_app as init_extensions, limiter
@@ -12,6 +13,8 @@ def create_app(config_object=None):
     _root = os.path.dirname(os.path.abspath(__file__))
     app = Flask(__name__, template_folder=os.path.join(_root, "web", "templates"), static_folder=os.path.join(_root, "static"))
     app.config.from_object(config_object or Config)
+    if not app.config.get("TESTING") and not app.config.get("SECRET_KEY"):
+        raise ValueError("SECRET_KEY must be set in environment. Use .env or export.")
     init_extensions(app)
     limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]
 
@@ -27,6 +30,9 @@ def create_app(config_object=None):
 
     app.register_blueprint(web_bp)
     register_api(app)
+    csrf = CSRFProtect(app)
+    from app.api.v1 import api_v1_bp
+    csrf.exempt(api_v1_bp)
 
     @app.errorhandler(429)
     def ratelimit_handler(_request):
