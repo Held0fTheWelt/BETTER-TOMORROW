@@ -1,9 +1,13 @@
+import logging
+
 from flask import jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
 from app.extensions import limiter
 from app.services import verify_user, create_user
+
+logger = logging.getLogger(__name__)
 
 
 @api_v1_bp.route("/auth/register", methods=["POST"])
@@ -40,6 +44,7 @@ def login():
             "access_token": access_token,
             "user": user.to_dict(),
         }), 200
+    logger.warning("API login 401 for username=%r", username)
     return jsonify({"error": "Invalid username or password"}), 401
 
 

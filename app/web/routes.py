@@ -32,8 +32,11 @@ def login():
         return render_template("login.html")
     user = verify_user(username, password)
     if user:
+        # Regenerate session to prevent session fixation
+        session.clear()
         session["user_id"] = user.id
         session["username"] = user.username
+        session.modified = True
         flash(f"Welcome, {user.username}.", "success")
         next_url = request.args.get("next")
         if not (next_url and is_safe_redirect(next_url)):
