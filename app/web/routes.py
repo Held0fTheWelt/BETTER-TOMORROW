@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
-from app.services import verify_user
+from app.extensions import limiter
+from app.services import create_user, verify_user
 from app.web.auth import is_safe_redirect, require_web_login
 
 web_bp = Blueprint("web", __name__)
@@ -52,6 +53,84 @@ def logout():
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("web.home"))
+
+
+@web_bp.route("/register", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def register():
+    """Registration form. Redirects to login on success."""
+    if session.get("user_id"):
+        return redirect(url_for("web.dashboard"))
+    if request.method == "GET":
+        return render_template("register.html")
+    username = (request.form.get("username") or "").strip()
+    email = (request.form.get("email") or "").strip().lower() or None
+    password = request.form.get("password") or ""
+    password_confirm = request.form.get("password_confirm") or ""
+    if password != password_confirm:
+        flash("Passwords do not match.", "error")
+        return render_template("register.html", username=username, email=email or "")
+    user, err = create_user(username, password, email)
+    if err:
+        flash(err, "error")
+        return render_template("register.html", username=username, email=email or "")
+    flash("Account created. Please log in.", "success")
+    return redirect(url_for("web.login"))
+
+
+@web_bp.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def forgot_password():
+    """Request a password reset link by email."""
+    if request.method == "GET":
+        return render_template("forgot_password.html")
+    email = (request.form.get("email") or "").strip().lower()
+    if not email:
+        flash("Please enter your email address.", "error")
+        return render_template("forgot_password.html")
+    from app.services.user_service import (
+        create_password_reset_token,
+        get_user_by_email,
+    )
+    from app.services.mail_service import send_password_reset_email
+
+    user = get_user_by_email(email)
+    if user and user.email:
+        token = create_password_reset_token(user)
+        send_password_reset_email(user, token)
+    flash(
+        "If an account with that email exists, a reset link has been sent.",
+        "info",
+    )
+    return redirect(url_for("web.login"))
+
+
+@web_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
+def reset_password(token):
+    """Reset password using a valid token from the reset email."""
+    from app.services.user_service import (
+        get_valid_reset_token,
+        reset_password_with_token,
+    )
+
+    record = get_valid_reset_token(token)
+    if not record:
+        flash("This reset link is invalid or has expired.", "error")
+        return redirect(url_for("web.forgot_password"))
+    if request.method == "GET":
+        return render_template("reset_password.html", token=token)
+    new_password = request.form.get("password") or ""
+    password_confirm = request.form.get("password_confirm") or ""
+    if new_password != password_confirm:
+        flash("Passwords do not match.", "error")
+        return render_template("reset_password.html", token=token)
+    ok, err = reset_password_with_token(token, new_password)
+    if not ok:
+        flash(err, "error")
+        return render_template("reset_password.html", token=token)
+    flash("Password updated. Please log in with your new password.", "success")
+    return redirect(url_for("web.login"))
 
 
 @web_bp.route("/dashboard")

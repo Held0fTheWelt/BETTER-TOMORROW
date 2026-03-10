@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Create account – World of Shadows{% endblock %}
+{% block content %}
+<div class="card card-center">
+    <h1>Create account</h1>
+    <form method="post" action="{{ url_for('web.register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" required autocomplete="username" value="{{ username or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="email">Email <span class="optional">(optional)</span></label>
+            <input type="email" name="email" id="email" autocomplete="email" value="{{ email or '' }}" placeholder="For password reset">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required autocomplete="new-password">
+            <p class="form-hint small">At least 8 characters · One uppercase letter · One lowercase letter · One digit</p>
+        </div>
+        <div class="form-group">
+            <label for="password_confirm">Confirm password</label>
+            <input type="password" name="password_confirm" id="password_confirm" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary">Create account</button>
+    </form>
+    <p class="form-hint">
+        Already have an account? <a href="{{ url_for('web.login') }}">Log in</a>
+    </p>
+</div>
+{% endblock %}

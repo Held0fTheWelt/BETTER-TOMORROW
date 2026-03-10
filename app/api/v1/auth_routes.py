@@ -19,9 +19,10 @@ def register():
         return jsonify({"error": "Invalid or missing JSON body"}), 400
     username = (data.get("username") or "").strip()
     password = data.get("password")
-    user, err = create_user(username, password)
+    email = (data.get("email") or "").strip().lower() or None
+    user, err = create_user(username, password, email)
     if err:
-        status = 409 if err == "Username already taken" else 400
+        status = 409 if err in ("Username already taken", "Email already registered") else 400
         return jsonify({"error": err}), status
     return jsonify({"id": user.id, "username": user.username}), 201
 

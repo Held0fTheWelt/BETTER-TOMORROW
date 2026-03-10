@@ -15,5 +15,11 @@
         </div>
         <button type="submit" class="btn btn-primary">Log in</button>
     </form>
+    <p class="form-hint">
+        No account yet? <a href="{{ url_for('web.register') }}">Create one</a>
+    </p>
+    <p class="form-hint">
+        <a href="{{ url_for('web.forgot_password') }}">Forgot your password?</a>
+    </p>
 </div>
 {% endblock %}
