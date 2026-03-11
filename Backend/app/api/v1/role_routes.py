@@ -59,12 +59,16 @@ def roles_get(role_id):
 @limiter.limit("30 per minute")
 @require_jwt_admin
 def roles_create():
-    """Create a role (admin only). Body: name."""
+    """Create a role (admin only). Body: name; optional description, default_role_level."""
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
     name = (data.get("name") or "").strip() if data.get("name") is not None else ""
-    role, err = create_role_service(name)
+    description = data.get("description")
+    if description is not None:
+        description = (description or "").strip() or None
+    default_role_level = data.get("default_role_level")
+    role, err = create_role_service(name, description=description, default_role_level=default_role_level)
     if err:
         status = 409 if err == "Role name already exists" else 400
         return jsonify({"error": err}), status
@@ -75,12 +79,18 @@ def roles_create():
 @limiter.limit("30 per minute")
 @require_jwt_admin
 def roles_update(role_id):
-    """Update a role's name (admin only). Body: name."""
+    """Update a role (admin only). Body: optional name, description, default_role_level."""
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
-    name = (data.get("name") or "").strip() if data.get("name") is not None else ""
-    role, err = update_role_service(role_id, name)
+    name = data.get("name")
+    if name is not None:
+        name = (name or "").strip() or None
+    description = data.get("description")
+    if description is not None:
+        description = (description or "").strip() or None
+    default_role_level = data.get("default_role_level")
+    role, err = update_role_service(role_id, name=name, description=description, default_role_level=default_role_level)
     if err:
         status = 409 if err == "Role name already exists" else (404 if err == "Role not found" else 400)
         return jsonify({"error": err}), status

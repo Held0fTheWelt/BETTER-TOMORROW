@@ -2,13 +2,16 @@ from datetime import datetime, timezone
 
 from app.extensions import db
 
+# SuperAdmin: admin role with role_level >= this value. Used for hierarchy and self-elevation.
+SUPERADMIN_THRESHOLD = 100
+
 
 def _utc_now():
     return datetime.now(timezone.utc)
 
 
 class User(db.Model):
-    """User for auth (web session and API JWT). Primary role via Role model. Supports ban state."""
+    """User for auth (web session and API JWT). Primary role via Role model; role_level for hierarchy. Supports ban state."""
 
     __tablename__ = "users"
 
@@ -17,6 +20,7 @@ class User(db.Model):
     email = db.Column(db.String(254), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
+    role_level = db.Column(db.Integer, nullable=False, default=0)
     email_verified_at = db.Column(db.DateTime(timezone=True), nullable=True, default=None)
     is_banned = db.Column(db.Boolean(), nullable=False, default=False)
     banned_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -30,6 +34,7 @@ class User(db.Model):
     ROLE_USER = "user"
     ROLE_MODERATOR = "moderator"
     ROLE_ADMIN = "admin"
+    ROLE_QA = "qa"
 
     @property
     def role(self) -> str:
@@ -51,12 +56,23 @@ class User(db.Model):
         return self.has_role(self.ROLE_ADMIN)
 
     @property
+    def is_super_admin(self) -> bool:
+        """True if this user is admin with role_level >= SUPERADMIN_THRESHOLD."""
+        return self.has_role(self.ROLE_ADMIN) and (self.role_level or 0) >= SUPERADMIN_THRESHOLD
+
+    @property
     def is_moderator_or_admin(self) -> bool:
         """True if this user has moderator or admin role."""
         return self.has_any_role((self.ROLE_MODERATOR, self.ROLE_ADMIN))
 
     def to_dict(self, include_email: bool = False, include_ban: bool = False):
-        out = {"id": self.id, "username": self.username, "role": self.role}
+        out = {
+            "id": self.id,
+            "username": self.username,
+            "role": self.role,
+            "role_id": self.role_id,
+            "role_level": getattr(self, "role_level", 0) or 0,
+        }
         if self.preferred_language is not None:
             out["preferred_language"] = self.preferred_language
         out["created_at"] = self.created_at.isoformat() if self.created_at else None

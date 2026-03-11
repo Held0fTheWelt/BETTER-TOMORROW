@@ -1,4 +1,4 @@
-"""Permission helpers for API routes. Use after @jwt_required(). Centralized role and ban checks."""
+"""Permission helpers for API routes. Use after @jwt_required(). Centralized role, role_level, and ban checks."""
 
 from functools import wraps
 
@@ -6,9 +6,10 @@ from flask import current_app, g, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.models import User
+from app.models.user import SUPERADMIN_THRESHOLD
 
 # Role names for validation and checks. Single source for allowed roles.
-ALLOWED_ROLES = ("user", "moderator", "admin")
+ALLOWED_ROLES = ("user", "moderator", "admin", "qa")
 
 
 def get_current_user():
@@ -42,6 +43,25 @@ def current_user_is_admin() -> bool:
     """True if the current JWT identity belongs to a non-banned user with admin role."""
     user = get_current_user()
     return user is not None and not user.is_banned and user.is_admin
+
+
+def current_user_role_level() -> int:
+    """Return the current JWT user's role_level, or 0 if none or banned."""
+    user = get_current_user()
+    if user is None or user.is_banned:
+        return 0
+    return getattr(user, "role_level", 0) or 0
+
+
+def current_user_is_super_admin() -> bool:
+    """True if the current JWT user is admin with role_level >= SUPERADMIN_THRESHOLD."""
+    user = get_current_user()
+    return user is not None and not user.is_banned and getattr(user, "is_super_admin", False)
+
+
+def admin_may_edit_target(actor_level: int, target_level: int) -> bool:
+    """True if an admin with actor_level may edit a user with target_level (strictly lower only)."""
+    return actor_level > target_level
 
 
 def current_user_is_moderator_or_admin() -> bool:

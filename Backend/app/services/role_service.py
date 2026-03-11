@@ -45,34 +45,71 @@ def validate_role_name(name: str) -> str | None:
     return None
 
 
-def create_role(name: str) -> tuple[Role | None, str | None]:
+def _validate_role_level(level) -> str | None:
+    """Validate default_role_level. Returns error message or None."""
+    if level is None:
+        return None
+    try:
+        n = int(level)
+        if n < 0 or n > 9999:
+            return "default_role_level must be between 0 and 9999"
+        return None
+    except (TypeError, ValueError):
+        return "default_role_level must be an integer"
+
+
+def create_role(
+    name: str,
+    description: str | None = None,
+    default_role_level: int | None = None,
+) -> tuple[Role | None, str | None]:
     """Create a role. Returns (role, None) or (None, error_message)."""
     err = validate_role_name(name)
+    if err:
+        return None, err
+    err = _validate_role_level(default_role_level)
     if err:
         return None, err
     name = name.strip().lower()
     if Role.query.filter_by(name=name).first():
         return None, "Role name already exists"
-    role = Role(name=name)
+    role = Role(
+        name=name,
+        description=(description or "").strip() or None,
+        default_role_level=int(default_role_level) if default_role_level is not None else None,
+    )
     db.session.add(role)
     db.session.commit()
     db.session.refresh(role)
     return role, None
 
 
-def update_role(role_id: int, name: str) -> tuple[Role | None, str | None]:
-    """Update a role's name. Returns (role, None) or (None, error_message)."""
+def update_role(
+    role_id: int,
+    name: str | None = None,
+    description: str | None = None,
+    default_role_level: int | None = None,
+) -> tuple[Role | None, str | None]:
+    """Update a role. Returns (role, None) or (None, error_message)."""
     role = get_role_by_id(role_id)
     if not role:
         return None, "Role not found"
-    err = validate_role_name(name)
-    if err:
-        return None, err
-    name = name.strip().lower()
-    existing = Role.query.filter_by(name=name).first()
-    if existing and existing.id != role_id:
-        return None, "Role name already exists"
-    role.name = name
+    if name is not None:
+        err = validate_role_name(name)
+        if err:
+            return None, err
+        name = name.strip().lower()
+        existing = Role.query.filter_by(name=name).first()
+        if existing and existing.id != role_id:
+            return None, "Role name already exists"
+        role.name = name
+    if description is not None:
+        role.description = (description or "").strip() or None
+    if default_role_level is not None:
+        err = _validate_role_level(default_role_level)
+        if err:
+            return None, err
+        role.default_role_level = int(default_role_level)
     db.session.commit()
     db.session.refresh(role)
     return role, None

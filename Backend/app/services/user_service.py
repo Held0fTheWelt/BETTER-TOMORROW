@@ -164,11 +164,14 @@ def create_user(username, password, email=None):
     default_role = Role.query.filter_by(name=Role.NAME_USER).first()
     if not default_role:
         return None, "Default role not found; run migrations and ensure roles are seeded."
+    default_level = getattr(default_role, "default_role_level", None)
+    role_level = int(default_level) if default_level is not None else 0
     user = User(
         username=username,
         email=email_val,
         password_hash=generate_password_hash(password),
         role_id=default_role.id,
+        role_level=role_level,
     )
     # When email verification is disabled, treat accounts as verified on creation.
     email_verification_enabled = current_app.config.get("EMAIL_VERIFICATION_ENABLED", False)
@@ -407,7 +410,7 @@ def delete_user(user_id: int) -> tuple[bool, str | None]:
 
 # --- Admin: assign role, ban, unban ---
 
-ALLOWED_ROLE_NAMES = (Role.NAME_USER, Role.NAME_MODERATOR, Role.NAME_ADMIN)
+ALLOWED_ROLE_NAMES = (Role.NAME_USER, Role.NAME_QA, Role.NAME_MODERATOR, Role.NAME_ADMIN)
 
 
 def assign_role(user_id: int, role_name: str, *, actor_id: int | None = None) -> tuple[User | None, str | None]:
@@ -421,7 +424,7 @@ def assign_role(user_id: int, role_name: str, *, actor_id: int | None = None) ->
         return None, "User not found"
     name = (role_name or "").strip().lower()
     if name not in ALLOWED_ROLE_NAMES:
-        return None, "Invalid role; allowed: user, moderator, admin"
+        return None, "Invalid role; allowed: user, qa, moderator, admin"
     role_obj = Role.query.filter_by(name=name).first()
     if not role_obj:
         return None, "Invalid role"
