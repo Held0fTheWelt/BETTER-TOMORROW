@@ -21,6 +21,8 @@
         totalPages: 0,
         selectedId: null,
         items: [],
+        roles: [],
+        currentUser: null,
     };
 
     function getListParams() {
@@ -97,11 +99,13 @@
                 var lang = (u.preferred_language || "").replace(/</g, "&lt;") || "—";
                 var created = formatDateTime(u.created_at);
                 var lastSeen = formatDateTime(u.last_seen_at);
+                var level = typeof u.role_level === "number" ? u.role_level : (u.role_level != null ? String(u.role_level) : "—");
                 tr.innerHTML =
                     "<td>" + (u.id || "") + "</td>" +
                     "<td>" + (u.username || "").replace(/</g, "&lt;") + "</td>" +
                     "<td>" + (u.email || "").replace(/</g, "&lt;") + "</td>" +
                     "<td>" + (u.role || "").replace(/</g, "&lt;") + "</td>" +
+                    "<td>" + level + "</td>" +
                     "<td>" + lang + "</td>" +
                     "<td>" + banText + "</td>" +
                     "<td>" + created + "</td>" +
@@ -128,6 +132,13 @@
                 var total = typeof data.total === "number" ? data.total : items.length;
                 var page = typeof data.page === "number" ? data.page : 1;
                 var perPage = typeof data.per_page === "number" ? data.per_page : 20;
+                var stored = window.ManageAuth && window.ManageAuth.getStoredUser && window.ManageAuth.getStoredUser();
+                if (stored && stored.id != null) {
+                    var me = items.filter(function(u) { return u.id === stored.id; })[0];
+                    state.currentUser = me || stored;
+                } else {
+                    state.currentUser = stored;
+                }
                 renderList(items, page, total, perPage);
             })
             .catch(function(e) {
@@ -158,8 +169,32 @@
                 ($("manage-users-username") || {}).value = user.username || "";
                 ($("manage-users-email") || {}).value = user.email || "";
                 ($("manage-users-role") || {}).value = user.role || "user";
+                var levelEl = $("manage-users-role-level");
+                if (levelEl) levelEl.value = (user.role_level != null && user.role_level !== "") ? user.role_level : "0";
                 var langEl = $("manage-users-preferred-language");
                 if (langEl) langEl.value = user.preferred_language || "";
+                var currentUser = state.currentUser || (window.ManageAuth && window.ManageAuth.getStoredUser && window.ManageAuth.getStoredUser());
+                var actorLevel = (currentUser && (currentUser.role_level != null)) ? parseInt(currentUser.role_level, 10) : 0;
+                var targetLevel = (user.role_level != null) ? parseInt(user.role_level, 10) : 0;
+                var canEdit = !currentUser || currentUser.id === user.id || actorLevel > targetLevel;
+                var saveBtn = $("manage-users-save");
+                var banBtn = $("manage-users-ban-btn");
+                var unbanBtn = $("manage-users-unban-btn");
+                var delBtn = $("manage-users-delete-btn");
+                var levelWrap = $("manage-users-role-level-wrap");
+                if (saveBtn) saveBtn.disabled = !canEdit;
+                if (banBtn) banBtn.disabled = !canEdit;
+                if (unbanBtn) unbanBtn.disabled = !canEdit;
+                if (delBtn) delBtn.disabled = !canEdit;
+                if (levelWrap) levelWrap.style.display = canEdit ? "" : "none";
+                var formErr = $("manage-users-form-error");
+                if (!canEdit && formErr) {
+                    formErr.textContent = "You cannot edit users with equal or higher role level.";
+                    formErr.hidden = false;
+                } else if (canEdit && formErr && formErr.textContent.indexOf("equal or higher") >= 0) {
+                    formErr.hidden = true;
+                    formErr.textContent = "";
+                }
                 var banInfo = $("manage-users-ban-info");
                 var banText = $("manage-users-ban-text");
                 var banBtn = $("manage-users-ban-btn");
@@ -215,6 +250,11 @@
             role: ($("manage-users-role") || {}).value || "user",
             preferred_language: ($("manage-users-preferred-language") || {}).value || null,
         };
+        var levelEl = $("manage-users-role-level");
+        if (levelEl && levelEl.value !== "" && levelEl.value != null) {
+            var l = parseInt(levelEl.value, 10);
+            if (!isNaN(l)) payload.role_level = l;
+        }
         if (payload.preferred_language === "") payload.preferred_language = null;
         var saveBtn = $("manage-users-save");
         if (saveBtn) saveBtn.disabled = true;
@@ -316,6 +356,27 @@
             if (state.page < state.totalPages) { state.page++; fetchList(); }
         });
 
+        function fetchRoles() {
+            apiRef("/api/v1/roles?limit=100")
+                .then(function(data) {
+                    var items = data.items || [];
+                    state.roles = items;
+                    var sel = $("manage-users-role");
+                    if (sel && items.length) {
+                        var current = sel.value;
+                        sel.innerHTML = "";
+                        items.forEach(function(r) {
+                            var opt = document.createElement("option");
+                            opt.value = r.name;
+                            opt.textContent = r.name;
+                            sel.appendChild(opt);
+                        });
+                        if (current) sel.value = current;
+                    }
+                })
+                .catch(function() {});
+        }
+        fetchRoles();
         fetchList();
     }
 

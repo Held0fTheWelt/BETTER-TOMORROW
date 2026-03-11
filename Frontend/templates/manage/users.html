@@ -24,6 +24,7 @@
                             <th>Username</th>
                             <th>Email</th>
                             <th>Role</th>
+                            <th>Level</th>
                             <th>Lang</th>
                             <th>Banned</th>
                             <th>Created</th>
@@ -58,9 +59,15 @@
                     <label for="manage-users-role">Role</label>
                     <select id="manage-users-role" name="role" class="form-input">
                         <option value="user">user</option>
+                        <option value="qa">qa</option>
                         <option value="moderator">moderator</option>
                         <option value="admin">admin</option>
                     </select>
+                </div>
+                <div class="form-group" id="manage-users-role-level-wrap">
+                    <label for="manage-users-role-level">Role level</label>
+                    <input type="number" id="manage-users-role-level" name="role_level" class="form-input" min="0" max="9999" step="1" title="Hierarchy level. You may only set levels below your own.">
+                    <p class="muted" style="margin:0.25rem 0 0; font-size:0.85rem;">Only users with a lower level can be edited. SuperAdmin (100+) may change own level.</p>
                 </div>
                 <div class="form-group">
                     <label for="manage-users-preferred-language">Preferred language</label>

@@ -128,8 +128,14 @@ def manage_news():
 
 @app.route("/manage/users")
 def manage_users():
-    """User administration (admin only; table, edit, role, ban, unban)."""
+    """User administration (admin only; table, edit, role, role_level, ban, unban)."""
     return render_template("manage/users.html")
+
+
+@app.route("/manage/roles")
+def manage_roles():
+    """Role management (admin only): list, create, edit, delete roles."""
+    return render_template("manage/roles.html")
 
 
 @app.route("/manage/wiki")
