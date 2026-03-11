@@ -11,18 +11,26 @@ pytest
 # With coverage
 pytest --cov=app --cov-report=term-missing
 
-# Only web, API, or news API
+# Only web, API, or specific API module
 pytest tests/test_web.py -v
 pytest tests/test_api.py -v
 pytest tests/test_news_api.py -v
+pytest tests/test_users_api.py -v
+pytest tests/test_roles.py -v
+pytest tests/test_admin_logs.py -v
 ```
 
 ## Layout
 
-- **conftest.py** – Fixtures: `app` (create_app with TestingConfig), `client`, `runner`, `test_user` (DB user, role=user), `auth_headers` (JWT for test_user), `editor_user` (role=editor), `editor_headers` (JWT for editor), `test_user_with_email`, `sample_news` (published + draft news for list/detail/search/sort tests).
-- **test_web.py** – Web: home, health, login (GET/POST, redirect when already logged in), **POST** logout, dashboard (anonymous → redirect to login, logged in → 200), 404, register, forgot/reset password.
-- **test_api.py** – API v1: health, register, login, me, test/protected; status codes and JSON responses; CORS.
-- **test_news_api.py** – News API: list JSON shape, detail JSON, search (q), sort (sort/direction), pagination (page/limit), category filter, published-only visibility (draft not in list, detail 404 for draft); anonymous write 401, user-role write 403, editor write (POST/PUT/publish/delete) 200/201.
+- **conftest.py** – Fixtures: `app`, `client`, `runner`, `test_user` (role=user), `auth_headers`, `editor_user`, `editor_headers`, `admin_user`, `admin_headers`, `test_user_with_email`, `sample_news`.
+- **test_api.py** – API v1: health, register, login, me, test/protected; status codes, JSON, CORS.
+- **test_news_api.py** – News CRUD: list/detail (public + editor drafts), search/sort/pagination/category; write 401/403/201/200; publish/unpublish/delete.
+- **test_users_api.py** – Users CRUD: list (admin 200, non-admin 403), get (self/admin/other), update (self/admin/403), delete (admin/403/404); 401 without token. Aligned with Postman Users folder.
+- **test_roles.py** – Roles CRUD: list/get/create/update/delete (admin only); 403/401/404/400/409 as applicable.
+- **test_admin_logs.py** – Admin logs API (401/403/200), filters, dashboard logs, CSV export; role helpers; activity log on login.
+- **test_web.py** – Web: home, health, wiki, login, logout, dashboard, register, forgot/reset password, activation, CSRF.
+- **test_web_open_redirect.py** – Open redirect safety (login `next`).
+- **test_config.py** – App config (secret key, testing config).
 
 ## Config
 

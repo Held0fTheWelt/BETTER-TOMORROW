@@ -24,7 +24,8 @@
 | `access_token` | JWT (set by "Login") | – |
 | `user_id` | Current user ID (from Login/Me/Register) | – |
 | `target_user_id` | User ID for Users Delete (set by "Users List", different user) | – |
-| `news_id` | A news ID (set by "News List") | – |
+| `news_id` | A news ID (set by "News List" or "News Create") | – |
+| `role_id` | A role ID (set by "Roles List" or "Roles Create") | – |
 | `register_username` | Username for registration | `postman_user` |
 | `register_email` | Email for registration | `postman@example.com` |
 | `register_password` | Password for registration | (secret) |
