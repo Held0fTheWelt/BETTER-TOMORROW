@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "world-of-shadows-api-v1",
     "name": "World of Shadows API",
-    "description": "REST API v1: Auth, System, Users (CRUD), Roles (CRUD), News, Admin Logs.\n\n**Test Environment:** Select an environment with `baseUrl`, `username`, `password`, `email`. Run **Login** to save `access_token` and `user_id`; protected requests use the token automatically. For **Users**, **Roles**, and **Admin Logs** use an admin account (role=admin).\n\n**Collection Runner:** All requests include test scripts (status codes and response body assertions). Users List sets `target_user_id` to another user for Delete (admin only).",
+    "description": "REST API v1: Auth, System, Users (CRUD + assign role, ban, unban), Roles (CRUD), News, Admin Logs.\n\n**Roles:** user, moderator, admin. News write (create/update/delete/publish) requires moderator or admin. Role assignment and ban/unban are admin-only.\n\n**Test Environment:** Select an environment with `baseUrl`, `username`, `password`, `email`. Run **Login** to save `access_token` and `user_id`; protected requests use the token automatically. For **Users** (list, delete, assign role, ban, unban), **Roles**, and **Admin Logs** use an admin account (role=admin). For **News** write use moderator or admin.\n\n**Collection Runner:** All requests include test scripts (status codes and response body assertions). Users List sets `target_user_id` to another user for Delete/Assign role/Ban/Unban (admin only).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -112,7 +112,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "auth", "login"]
             },
-            "description": "Authenticate and get JWT. Saves token to {{access_token}} and user_id to {{user_id}}. 403 if email not verified."
+            "description": "Authenticate and get JWT. Saves token to {{access_token}} and user_id to {{user_id}}. 403 if email not verified or account is banned (Account is restricted.)."
           }
         },
         {
@@ -276,7 +276,7 @@
     },
     {
       "name": "News",
-      "description": "News CRUD: List (public published; with editor JWT use published_only=0 for drafts), Detail (public or draft with editor JWT), Create, Update, Delete, Publish, Unpublish. Write and publish require editor/admin role.",
+      "description": "News CRUD: List (public published; with moderator/admin JWT use published_only=0 for drafts), Detail (public or draft with moderator/admin JWT), Create, Update, Delete, Publish, Unpublish. Write and publish require moderator or admin role.",
       "item": [
         {
           "name": "News List",
@@ -390,7 +390,7 @@
           }
         },
         {
-          "name": "News List (editor, include drafts)",
+          "name": "News List (moderator, include drafts)",
           "event": [
             {
               "listen": "test",
@@ -422,7 +422,7 @@
                 { "key": "published_only", "value": "0" }
               ]
             },
-            "description": "List all news including drafts. Requires editor/admin JWT. Sets news_id from first item."
+            "description": "List all news including drafts. Requires moderator or admin JWT. Sets news_id from first item."
           }
         },
         {
@@ -458,7 +458,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "news"]
             },
-            "description": "Create news. Editor/admin JWT required. Body: title, slug, content; optional summary, is_published, cover_image, category. Sets news_id on 201."
+            "description": "Create news. Moderator or admin JWT required. Body: title, slug, content; optional summary, is_published, cover_image, category. Sets news_id on 201."
           }
         },
         {
@@ -495,7 +495,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "news", "{{news_id}}"]
             },
-            "description": "Update news. Editor/admin JWT. Body: optional title, slug, summary, content, cover_image, category. Uses news_id."
+            "description": "Update news. Moderator or admin JWT. Body: optional title, slug, summary, content, cover_image, category. Uses news_id."
           }
         },
         {
@@ -527,7 +527,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "news", "{{news_id}}", "publish"]
             },
-            "description": "Publish article. Editor/admin JWT. Sets is_published true, published_at to now."
+            "description": "Publish article. Moderator or admin JWT. Sets is_published true, published_at to now."
           }
         },
         {
@@ -559,7 +559,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "news", "{{news_id}}", "unpublish"]
             },
-            "description": "Unpublish article. Editor/admin JWT."
+            "description": "Unpublish article. Moderator or admin JWT."
           }
         },
         {
@@ -591,14 +591,14 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "news", "{{news_id}}"]
             },
-            "description": "Delete article. Editor/admin JWT. Use news_id of an article you can delete (e.g. one you created)."
+            "description": "Delete article. Moderator or admin JWT. Use news_id of an article you can delete (e.g. one you created)."
           }
         }
       ]
     },
     {
       "name": "Users",
-      "description": "User CRUD: List and Delete require admin role; Get and Update work for admin (any user) or self.",
+      "description": "User CRUD: List, Delete, Assign role, Ban, Unban require admin role; Get and Update work for admin (any user) or self. Roles: user, moderator, admin.",
       "item": [
         {
           "name": "Users List",
@@ -769,6 +769,107 @@
               "path": ["api", "v1", "users", "{{target_user_id}}"]
             },
             "description": "Delete a user (admin only). Uses target_user_id from Users List (another user, not self). 403 if not admin; 404 if target_user_id empty or invalid."
+          }
+        },
+        {
+          "name": "Users Assign role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('role');",
+                  "  pm.expect(['user','moderator','admin']).to.include(j.role);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"moderator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{target_user_id}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{target_user_id}}", "role"]
+            },
+            "description": "Assign role to a user (admin only). Body: role (user, moderator, or admin). Uses target_user_id. 403 if not admin."
+          }
+        },
+        {
+          "name": "Users Ban",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('is_banned');",
+                  "  pm.expect(j.is_banned).to.eql(true);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman test ban\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{target_user_id}}/ban",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{target_user_id}}", "ban"]
+            },
+            "description": "Ban a user (admin only). Body: optional reason. Uses target_user_id. Cannot ban yourself (400). 403 if not admin."
+          }
+        },
+        {
+          "name": "Users Unban",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('is_banned');",
+                  "  pm.expect(j.is_banned).to.eql(false);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{target_user_id}}/unban",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{target_user_id}}", "unban"]
+            },
+            "description": "Unban a user (admin only). Uses target_user_id. 403 if not admin."
           }
         }
       ]

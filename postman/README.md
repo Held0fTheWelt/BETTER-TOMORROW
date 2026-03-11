@@ -23,7 +23,7 @@
 | `email` | User email | `admin@example.com` |
 | `access_token` | JWT (set by "Login") | – |
 | `user_id` | Current user ID (from Login/Me/Register) | – |
-| `target_user_id` | User ID for Users Delete (set by "Users List", different user) | – |
+| `target_user_id` | User ID for Users Delete, Assign role, Ban, Unban (set by "Users List", different user) | – |
 | `news_id` | A news ID (set by "News List" or "News Create") | – |
 | `role_id` | A role ID (set by "Roles List" or "Roles Create") | – |
 | `register_username` | Username for registration | `postman_user` |
@@ -34,10 +34,10 @@
 
 1. Run **Login (saves token)** → `access_token` and `user_id` are set.
 2. Protected requests (Me, Test Protected, **Users**, **Roles**, **Admin Logs**, News Write) automatically use **Authorization: Bearer {{access_token}}**.
-3. **Users List** (admin only): sets `target_user_id` to another user for **Users Delete**.
+3. **Users** (admin for List, Delete, Assign role, Ban, Unban): **Users List** sets `target_user_id` to another user for Delete, Assign role, Ban, Unban. Roles: user, moderator, admin.
 4. **Roles** (admin only): List, Get, Create, Update, Delete. Roles List/Create set `role_id` for Get/Update/Delete.
 5. **Admin Logs List** and **Admin Logs Export** (admin only): activity logs API; 403 if not admin.
-6. **News:** List (public) and **News List (editor, include drafts)** set `news_id`; **News Create** sets `news_id` on 201. Use editor/admin token for Create, Update, Delete, Publish, Unpublish.
+6. **News:** List (public) and **News List (moderator, include drafts)** set `news_id`; **News Create** sets `news_id` on 201. Use **moderator or admin** token for Create, Update, Delete, Publish, Unpublish.
 
 ## Collection Runner
 
