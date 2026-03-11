@@ -26,6 +26,7 @@
 | `target_user_id` | User ID for Users Delete, Assign role, Ban, Unban (set by "Users List", different user) | – |
 | `news_id` | A news ID (set by "News List" or "News Create") | – |
 | `role_id` | A role ID (set by "Roles List" or "Roles Create") | – |
+| `slogan_id` | A slogan ID (set by "Slogan Create") | – |
 | `register_username` | Username for registration | `postman_user` |
 | `register_email` | Email for registration | `postman@example.com` |
 | `register_password` | Password for registration | (secret) |
@@ -38,6 +39,7 @@
 4. **Roles** (admin only): List, Get, Create, Update, Delete. Roles List/Create set `role_id` for Get/Update/Delete.
 5. **Admin Logs List** and **Admin Logs Export** (admin only): activity logs API; 403 if not admin.
 6. **News:** List (public) and **News List (moderator, include drafts)** set `news_id`; **News Create** sets `news_id` on 201. Use **moderator or admin** token for Create, Update, Delete, Publish, Unpublish.
+7. **Slogans** (moderator or admin): List, Create (sets `slogan_id`), Activate, Deactivate. **Site / Site Slogan** is public (no auth): resolve slogan by placement and lang.
 
 ## Collection Runner
 
