@@ -87,11 +87,13 @@
                 tr.dataset.id = u.id;
                 if (state.selectedId === u.id) tr.classList.add("selected");
                 var banText = u.is_banned ? "Yes" : "No";
+                var lang = (u.preferred_language || "").replace(/</g, "&lt;") || "—";
                 tr.innerHTML =
                     "<td>" + (u.id || "") + "</td>" +
                     "<td>" + (u.username || "").replace(/</g, "&lt;") + "</td>" +
                     "<td>" + (u.email || "").replace(/</g, "&lt;") + "</td>" +
                     "<td>" + (u.role || "").replace(/</g, "&lt;") + "</td>" +
+                    "<td>" + lang + "</td>" +
                     "<td>" + banText + "</td>";
                 tr.addEventListener("click", function() { selectUser(u.id); });
                 tbody.appendChild(tr);
@@ -144,6 +146,8 @@
                 ($("manage-users-username") || {}).value = user.username || "";
                 ($("manage-users-email") || {}).value = user.email || "";
                 ($("manage-users-role") || {}).value = user.role || "user";
+                var langEl = $("manage-users-preferred-language");
+                if (langEl) langEl.value = user.preferred_language || "";
                 var banInfo = $("manage-users-ban-info");
                 var banText = $("manage-users-ban-text");
                 var banBtn = $("manage-users-ban-btn");
@@ -193,7 +197,9 @@
             username: username,
             email: ($("manage-users-email") || {}).value.trim() || null,
             role: ($("manage-users-role") || {}).value || "user",
+            preferred_language: ($("manage-users-preferred-language") || {}).value || null,
         };
+        if (payload.preferred_language === "") payload.preferred_language = null;
         var saveBtn = $("manage-users-save");
         if (saveBtn) saveBtn.disabled = true;
         api("/api/v1/users/" + id, { method: "PUT", body: JSON.stringify(payload) })

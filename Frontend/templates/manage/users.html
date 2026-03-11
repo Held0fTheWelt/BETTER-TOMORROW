@@ -24,6 +24,7 @@
                             <th>Username</th>
                             <th>Email</th>
                             <th>Role</th>
+                            <th>Lang</th>
                             <th>Banned</th>
                         </tr>
                     </thead>
@@ -57,6 +58,14 @@
                         <option value="user">user</option>
                         <option value="moderator">moderator</option>
                         <option value="admin">admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="manage-users-preferred-language">Preferred language</label>
+                    <select id="manage-users-preferred-language" name="preferred_language" class="form-input">
+                        <option value="">— default —</option>
+                        <option value="de">de</option>
+                        <option value="en">en</option>
                     </select>
                 </div>
                 <div class="form-group" id="manage-users-ban-info" hidden>
