@@ -27,3 +27,5 @@ from app.api.v1 import news_routes  # noqa: F401, E402
 from app.api.v1 import user_routes  # noqa: F401, E402
 from app.api.v1 import wiki_routes  # noqa: F401, E402
 from app.api.v1 import wiki_admin_routes  # noqa: F401, E402
+from app.api.v1 import slogan_routes  # noqa: F401, E402
+from app.api.v1 import site_routes  # noqa: F401, E402

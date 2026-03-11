@@ -5,6 +5,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.email_verification_token import EmailVerificationToken
 from app.models.news_article import NewsArticle, NewsArticleTranslation
 from app.models.wiki_page import WikiPage, WikiPageTranslation
+from app.models.slogan import Slogan
 
 __all__ = [
     "ActivityLog",
@@ -16,4 +17,5 @@ __all__ = [
     "NewsArticleTranslation",
     "WikiPage",
     "WikiPageTranslation",
+    "Slogan",
 ]
