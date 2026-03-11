@@ -1,12 +1,12 @@
-# Backend API – Funktionsbeschreibung
+# Backend API – Overview
 
-Die Backend-API wird unter dem Präfix **`/api/v1`** bereitgestellt. Alle Antworten sind JSON. Geschützte Endpoints erwarten den Header **`Authorization: Bearer <JWT>`**.
+The backend API is served under the prefix **`/api/v1`**. All responses are JSON. Protected endpoints expect the header **`Authorization: Bearer <JWT>`**.
 
 ---
 
-## Übersicht
+## Overview
 
-| Bereich   | Endpoints                                                                 |
+| Area     | Endpoints                                                                 |
 |----------|---------------------------------------------------------------------------|
 | **Auth** | Register, Login, Me                                                       |
 | **System** | Health, Test Protected                                                   |
@@ -17,85 +17,85 @@ Die Backend-API wird unter dem Präfix **`/api/v1`** bereitgestellt. Alle Antwor
 
 ## 1. Auth
 
-### 1.1 Register – Benutzer anlegen
+### 1.1 Register – Create user
 
 **`POST /api/v1/auth/register`**
 
-Legt einen neuen Benutzer an. E-Mail ist Pflicht. Nach der Registrierung wird ein E-Mail-Verifikations-Token erzeugt und eine Verifikations-E-Mail gesendet (oder in Dev ohne `MAIL_ENABLED` nur geloggt). Der User kann sich erst nach Klick auf den Aktivierungs-Link einloggen.
+Creates a new user. Email is required. After registration an email verification token is created and a verification email is sent (or only logged in dev when `MAIL_ENABLED` is off). The user can log in only after clicking the activation link.
 
-- **Rate Limit:** 10 pro Minute  
-- **Auth:** Keine  
+- **Rate limit:** 10 per minute  
+- **Auth:** None  
 
-**Request-Body (JSON):**
+**Request body (JSON):**
 
-| Feld      | Typ    | Pflicht | Beschreibung                          |
-|-----------|--------|--------|----------------------------------------|
-| `username` | string | ja     | Eindeutig, 2–80 Zeichen, `a-zA-Z0-9_-` |
-| `email`    | string | ja     | Eindeutig, gültiges Format             |
-| `password` | string | ja     | Mind. 8 Zeichen, Groß-/Kleinbuchstabe, Ziffer |
+| Field      | Type   | Required | Description                          |
+|------------|--------|----------|--------------------------------------|
+| `username` | string | yes      | Unique, 2–80 chars, `a-zA-Z0-9_-`     |
+| `email`    | string | yes      | Unique, valid format                 |
+| `password` | string | yes      | Min. 8 chars, upper/lowercase, digit |
 
 **Response:**
 
 - **201 Created:** `{ "id": <number>, "username": "<string>" }`
-- **400 Bad Request:** `{ "error": "<Fehlermeldung>" }` (z. B. ungültiges Passwort, fehlende Felder)
-- **409 Conflict:** `{ "error": "Username already taken" }` oder `"Email already registered"`
+- **400 Bad Request:** `{ "error": "<message>" }` (e.g. invalid password, missing fields)
+- **409 Conflict:** `{ "error": "Username already taken" }` or `"Email already registered"`
 
 ---
 
-### 1.2 Login – JWT abrufen
+### 1.2 Login – Get JWT
 
 **`POST /api/v1/auth/login`**
 
-Authentifiziert mit Benutzername und Passwort und gibt ein JWT sowie die User-Daten zurück. Nur möglich, wenn die E-Mail des Users verifiziert ist (siehe 0.0.7).
+Authenticates with username and password and returns a JWT and user data. Only possible if the user's email is verified (see 0.0.7).
 
-- **Rate Limit:** 20 pro Minute  
-- **Auth:** Keine  
+- **Rate limit:** 20 per minute  
+- **Auth:** None  
 
-**Request-Body (JSON):**
+**Request body (JSON):**
 
-| Feld       | Typ    | Pflicht | Beschreibung |
-|------------|--------|--------|---------------|
-| `username` | string | ja     | Benutzername  |
-| `password` | string | ja     | Passwort      |
+| Field      | Type   | Required | Description |
+|------------|--------|----------|-------------|
+| `username` | string | yes      | Username    |
+| `password` | string | yes      | Password    |
 
 **Response:**
 
 - **200 OK:**  
   `{ "access_token": "<JWT>", "user": { "id": <number>, "username": "<string>", "role": "<string>" } }`
-- **400 Bad Request:** `{ "error": "Invalid or missing JSON body" }` oder `"Username and password are required"`
+- **400 Bad Request:** `{ "error": "Invalid or missing JSON body" }` or `"Username and password are required"`
 - **401 Unauthorized:** `{ "error": "Invalid username or password" }`
-- **403 Forbidden:** `{ "error": "Email not verified." }` – E-Mail noch nicht bestätigt
+- **403 Forbidden:** `{ "error": "Email not verified." }` – email not yet confirmed
 
 ---
 
-### 1.3 Me – aktueller Benutzer
+### 1.3 Me – Current user
 
 **`GET /api/v1/auth/me`**
 
-Gibt den aus dem JWT ermittelten Benutzer zurück.
+Returns the user identified by the JWT.
 
-- **Rate Limit:** 60 pro Minute  
-- **Auth:** Bearer JWT (erforderlich)  
+- **Rate limit:** 60 per minute  
+- **Auth:** Bearer JWT (required)  
 
 **Response:**
 
 - **200 OK:** `{ "id": <number>, "username": "<string>", "role": "<string>" }`  
-  Mögliche Rollen: `user`, `editor`, `admin`.
-- **401 Unauthorized:** Fehlender oder ungültiger Token: `{ "error": "Authorization required. Missing or invalid token." }` bzw. `"Invalid or expired token."`
-- **404 Not Found:** `{ "error": "User not found" }` (Token gültig, User in DB nicht mehr vorhanden)
+  Possible roles: `user`, `editor`, `admin`.
+- **401 Unauthorized:** Missing or invalid token: `{ "error": "Authorization required. Missing or invalid token." }` or `"Invalid or expired token."`
+- **404 Not Found:** `{ "error": "User not found" }` (token valid but user no longer in DB)
 
 ---
 
 ## 2. System
 
-### 2.1 Health – API-Status
+### 2.1 Health – API status
 
 **`GET /api/v1/health`**
 
-Einfacher API-Health-Check.
+Simple API health check.
 
-- **Rate Limit:** 100 pro Minute  
-- **Auth:** Keine  
+- **Rate limit:** 100 per minute  
+- **Auth:** None  
 
 **Response:**
 
@@ -103,284 +103,284 @@ Einfacher API-Health-Check.
 
 ---
 
-### 2.2 Test Protected – geschützte Route (Beispiel)
+### 2.2 Test Protected – Protected route (example)
 
 **`GET /api/v1/test/protected`**
 
-Beispiel für eine geschützte Route. Nur mit gültigem JWT aufrufbar.
+Example of a protected route. Callable only with a valid JWT.
 
-- **Rate Limit:** 60 pro Minute  
-- **Auth:** Bearer JWT (erforderlich)  
+- **Rate limit:** 60 per minute  
+- **Auth:** Bearer JWT (required)  
 
 **Response:**
 
 - **200 OK:**  
   `{ "message": "ok", "user_id": <number>, "username": "<string>" }`
-- **401:** Wie bei Me (fehlender/ungültiger Token)
+- **401:** Same as Me (missing/invalid token)
 
 ---
 
 ## 3. News
 
-Öffentliche Lese-Endpoints (Liste, Detail) sind ohne Auth. Schreib- und Status-Änderungen (Create, Update, Delete, Publish, Unpublish) erfordern JWT und die Rolle **editor** oder **admin**; sonst 401 (kein Token) oder 403 (Forbidden).
+Public read endpoints (list, detail) require no auth. Write and status changes (Create, Update, Delete, Publish, Unpublish) require JWT and role **editor** or **admin**; otherwise 401 (no token) or 403 (Forbidden).
 
 ---
 
-### 3.1 News List – veröffentlichte Artikel auflisten
+### 3.1 News List – List published articles
 
 **`GET /api/v1/news`**
 
-Liefert eine paginierte Liste **nur veröffentlichter** Artikel. Unveröffentlichte bzw. für die Zukunft geplante Artikel erscheinen nicht.
+Returns a paginated list of **published** articles only. Unpublished or scheduled articles are not included.
 
-- **Rate Limit:** 60 pro Minute  
-- **Auth:** Keine  
+- **Rate limit:** 60 per minute  
+- **Auth:** None  
 
-**Query-Parameter:**
+**Query parameters:**
 
-| Parameter   | Typ    | Default        | Beschreibung                                      |
-|------------|--------|----------------|---------------------------------------------------|
-| `q`        | string | –              | Suchbegriff (Suche in Titel/Inhalt)               |
-| `sort`     | string | `published_at` | Sortierung: `published_at`, `created_at`, `updated_at`, `title` |
-| `direction`| string | `desc`         | `asc` oder `desc`                                 |
-| `page`     | int    | 1              | Seitennummer (≥ 1)                                |
-| `limit`    | int    | 20             | Einträge pro Seite (1–100)                        |
-| `category` | string | –              | Filter nach Kategorie                             |
+| Parameter  | Type   | Default        | Description                                      |
+|------------|--------|----------------|--------------------------------------------------|
+| `q`        | string | –              | Search term (searches title/content)            |
+| `sort`     | string | `published_at` | Sort: `published_at`, `created_at`, `updated_at`, `title` |
+| `direction`| string | `desc`         | `asc` or `desc`                                 |
+| `page`     | int    | 1              | Page number (≥ 1)                                |
+| `limit`    | int    | 20             | Items per page (1–100)                           |
+| `category` | string | –              | Filter by category                               |
 
 **Response:**
 
 - **200 OK:**  
-  `{ "items": [ <News-Objekt>, ... ], "total": <number>, "page": <number>, "per_page": <number> }`
+  `{ "items": [ <news object>, ... ], "total": <number>, "page": <number>, "per_page": <number> }`
 
-**News-Objekt (Auszug):**  
+**News object (excerpt):**  
 `id`, `title`, `slug`, `summary`, `content`, `author_id`, `author_name`, `is_published`, `published_at` (ISO-8601), `created_at`, `updated_at`, `cover_image`, `category`
 
 ---
 
-### 3.2 News Detail – einzelnen Artikel abrufen
+### 3.2 News Detail – Get single article
 
 **`GET /api/v1/news/<id>`**
 
-Liefert einen veröffentlichten Artikel anhand der numerischen ID. Unveröffentlichte oder zukünftig geplante Artikel liefern 404.
+Returns a published article by numeric ID. Unpublished or scheduled articles return 404.
 
-- **Rate Limit:** 60 pro Minute  
-- **Auth:** Keine  
+- **Rate limit:** 60 per minute  
+- **Auth:** None  
 
 **Response:**
 
-- **200 OK:** Ein einzelnes News-Objekt (gleiche Felder wie in der Liste).
+- **200 OK:** A single news object (same fields as in list).
 - **404 Not Found:** `{ "error": "Not found" }`
 
 ---
 
-### 3.3 News Create – Artikel anlegen
+### 3.3 News Create – Create article
 
 **`POST /api/v1/news`**
 
-Erstellt einen neuen News-Artikel. Autor wird aus der JWT-Identity übernommen.
+Creates a new news article. Author is taken from the JWT identity.
 
-- **Rate Limit:** 30 pro Minute  
-- **Auth:** Bearer JWT, Rolle **editor** oder **admin**  
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **editor** or **admin**  
 
-**Request-Body (JSON):**
+**Request body (JSON):**
 
-| Feld          | Typ    | Pflicht | Beschreibung                |
-|---------------|--------|--------|-----------------------------|
-| `title`       | string | ja     | Titel                       |
-| `slug`        | string | ja     | Eindeutiger URL-Slug        |
-| `content`     | string | ja     | Inhalt (Text)               |
-| `summary`     | string | nein   | Kurzfassung                 |
-| `is_published`| bool   | nein   | Default: false              |
-| `cover_image` | string | nein   | URL oder Pfad               |
-| `category`    | string | nein   | Kategorie                   |
+| Field          | Type   | Required | Description           |
+|----------------|--------|----------|-----------------------|
+| `title`        | string | yes      | Title                 |
+| `slug`         | string | yes      | Unique URL slug       |
+| `content`      | string | yes      | Content (text)        |
+| `summary`      | string | no       | Short summary         |
+| `is_published` | bool   | no       | Default: false        |
+| `cover_image`  | string | no       | URL or path           |
+| `category`     | string | no       | Category              |
 
 **Response:**
 
-- **201 Created:** Das erstellte News-Objekt.
-- **400 Bad Request:** `{ "error": "title, slug, and content are required" }` oder andere Validierungsfehler.
-- **401/403:** Kein Token oder Rolle nicht editor/admin.
+- **201 Created:** The created news object.
+- **400 Bad Request:** `{ "error": "title, slug, and content are required" }` or other validation errors.
+- **401/403:** No token or role not editor/admin.
 - **409 Conflict:** `{ "error": "Slug already in use" }`
 
 ---
 
-### 3.4 News Update – Artikel bearbeiten
+### 3.4 News Update – Edit article
 
 **`PUT /api/v1/news/<id>`**
 
-Aktualisiert einen bestehenden Artikel. Nur angegebene Felder werden geändert.
+Updates an existing article. Only provided fields are changed.
 
-- **Rate Limit:** 30 pro Minute  
-- **Auth:** Bearer JWT, Rolle **editor** oder **admin**  
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **editor** or **admin**  
 
-**Request-Body (JSON):** Alle Felder optional: `title`, `slug`, `summary`, `content`, `cover_image`, `category`.
+**Request body (JSON):** All fields optional: `title`, `slug`, `summary`, `content`, `cover_image`, `category`.
 
 **Response:**
 
-- **200 OK:** Das aktualisierte News-Objekt.
-- **400/401/403:** Wie bei Create.
+- **200 OK:** The updated news object.
+- **400/401/403:** Same as Create.
 - **404 Not Found:** `{ "error": "News not found" }`
 - **409 Conflict:** `{ "error": "Slug already in use" }`
 
 ---
 
-### 3.5 News Delete – Artikel löschen
+### 3.5 News Delete – Delete article
 
 **`DELETE /api/v1/news/<id>`**
 
-Löscht einen Artikel.
+Deletes an article.
 
-- **Rate Limit:** 30 pro Minute  
-- **Auth:** Bearer JWT, Rolle **editor** oder **admin**  
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **editor** or **admin**  
 
 **Response:**
 
 - **200 OK:** `{ "message": "Deleted" }`
-- **404 Not Found:** `{ "error": "<Fehlermeldung>" }`
-- **401/403:** Wie oben.
+- **404 Not Found:** `{ "error": "<message>" }`
+- **401/403:** Same as above.
 
 ---
 
-### 3.6 News Publish – Artikel veröffentlichen
+### 3.6 News Publish – Publish article
 
 **`POST /api/v1/news/<id>/publish`**
 
-Setzt den Artikel auf „veröffentlicht“ (und `published_at` auf jetzt).
+Sets the article to "published" (and `published_at` to now).
 
-- **Rate Limit:** 30 pro Minute  
-- **Auth:** Bearer JWT, Rolle **editor** oder **admin**  
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **editor** or **admin**  
 
 **Response:**
 
-- **200 OK:** Das aktualisierte News-Objekt (mit `is_published: true`, `published_at` gesetzt).
-- **404:** Artikel nicht gefunden.
-- **401/403:** Wie oben.
+- **200 OK:** The updated news object (with `is_published: true`, `published_at` set).
+- **404:** Article not found.
+- **401/403:** Same as above.
 
 ---
 
-### 3.7 News Unpublish – Veröffentlichung aufheben
+### 3.7 News Unpublish – Unpublish article
 
 **`POST /api/v1/news/<id>/unpublish`**
 
-Setzt den Artikel auf „nicht veröffentlicht“ (`is_published: false`, `published_at` optional zurückgesetzt).
+Sets the article to "not published" (`is_published: false`, `published_at` optionally cleared).
 
-- **Rate Limit:** 30 pro Minute  
-- **Auth:** Bearer JWT, Rolle **editor** oder **admin**  
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **editor** or **admin**  
 
 **Response:**
 
-- **200 OK:** Das aktualisierte News-Objekt.
-- **404/401/403:** Wie bei Publish.
+- **200 OK:** The updated news object.
+- **404/401/403:** Same as Publish.
 
 ---
 
 ## 4. Users (CRUD)
 
-Alle User-Endpoints erfordern **Bearer JWT**. **List** und **Delete** nur für Rolle **admin**; **Get** und **Update** für Admin (beliebiger User) oder für den eigenen User (Self).
+All user endpoints require **Bearer JWT**. **List** and **Delete** are for **admin** role only; **Get** and **Update** for Admin (any user) or for the current user (Self).
 
-### 4.1 Users List – Benutzer auflisten (Admin)
+### 4.1 Users List – List users (Admin)
 
 **`GET /api/v1/users`**
 
-Paginierte Liste aller User. Nur **admin**.
+Paginated list of all users. **Admin** only.
 
-- **Rate Limit:** 60 pro Minute  
-- **Auth:** Bearer JWT, Rolle **admin**  
+- **Rate limit:** 60 per minute  
+- **Auth:** Bearer JWT, role **admin**  
 
-**Query-Parameter:**
+**Query parameters:**
 
-| Parameter | Typ    | Default | Beschreibung                    |
-|-----------|--------|--------|----------------------------------|
-| `page`    | int    | 1      | Seitennummer (≥ 1)              |
-| `limit`   | int    | 20     | Einträge pro Seite (1–100)      |
-| `q`       | string | –      | Suche in Benutzername/E-Mail    |
+| Parameter | Type   | Default | Description                |
+|-----------|--------|---------|----------------------------|
+| `page`    | int    | 1       | Page number (≥ 1)          |
+| `limit`   | int    | 20      | Items per page (1–100)     |
+| `q`       | string | –       | Search in username/email   |
 
 **Response:**
 
 - **200 OK:** `{ "items": [ { "id", "username", "role", "email" }, ... ], "total", "page", "per_page" }`
-- **403:** Kein Admin
+- **403:** Not admin
 
 ---
 
-### 4.2 Users Get – einen User abrufen
+### 4.2 Users Get – Get one user
 
 **`GET /api/v1/users/<id>`**
 
-Einzelner User: **Admin** darf jeden abrufen, sonst nur das **eigene** Profil (`id` = JWT-User). Bei eigener Abfrage und bei Admin enthält die Antwort `email`.
+Single user: **Admin** may fetch any user; otherwise only the **current** user's profile (`id` = JWT user). For self and for admin, the response includes `email`.
 
-- **Rate Limit:** 60 pro Minute  
-- **Auth:** Bearer JWT (Admin oder Self)  
+- **Rate limit:** 60 per minute  
+- **Auth:** Bearer JWT (Admin or Self)  
 
 **Response:**
 
-- **200 OK:** `{ "id", "username", "role" }` oder inkl. `"email"` (siehe oben)
-- **403:** Fremder User, kein Admin
-- **404:** User nicht gefunden
+- **200 OK:** `{ "id", "username", "role" }` or including `"email"` (see above)
+- **403:** Other user, not admin
+- **404:** User not found
 
 ---
 
-### 4.3 Users Update – User bearbeiten
+### 4.3 Users Update – Edit user
 
 **`PUT /api/v1/users/<id>`**
 
-User aktualisieren: **Admin** darf jeden und kann `role` setzen; sonst nur **eigenes** Profil (ohne `role`). Body: alle Felder optional.
+Update user: **Admin** may update any user and may set `role`; otherwise only **own** profile (no `role`). Body: all fields optional.
 
-- **Rate Limit:** 30 pro Minute  
-- **Auth:** Bearer JWT (Admin oder Self)  
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT (Admin or Self)  
 
-**Request-Body (JSON):**
+**Request body (JSON):**
 
-| Feld               | Typ    | Beschreibung                                              |
-|--------------------|--------|-----------------------------------------------------------|
-| `username`         | string | Neuer Benutzername (eindeutig, 2–80 Zeichen, `a-zA-Z0-9_-`) |
-| `email`            | string | Neue E-Mail (eindeutig, gültiges Format)                  |
-| `password`         | string | Neues Passwort (Regeln wie bei Registrierung)            |
-| `current_password` | string | Beim Ändern des **eigenen** Passworts erforderlich       |
-| `role`             | string | Nur **Admin:** `user`, `editor`, `admin`                 |
+| Field               | Type   | Description                                              |
+|---------------------|--------|----------------------------------------------------------|
+| `username`          | string | New username (unique, 2–80 chars, `a-zA-Z0-9_-`)         |
+| `email`             | string | New email (unique, valid format)                         |
+| `password`          | string | New password (same rules as registration)                |
+| `current_password`  | string | Required when changing **own** password                  |
+| `role`              | string | **Admin** only: `user`, `editor`, `admin`                |
 
 **Response:**
 
-- **200 OK:** Aktualisiertes User-Objekt (wie bei Get, inkl. `email` wenn Admin/Self)
-- **400:** Validierungsfehler, z. B. „Current password is incorrect“
-- **403:** Kein Recht für diesen User
-- **404:** User nicht gefunden
-- **409:** „Username already taken“ oder „Email already registered“
+- **200 OK:** Updated user object (same as Get, including `email` when Admin/Self)
+- **400:** Validation error, e.g. "Current password is incorrect"
+- **403:** No permission for this user
+- **404:** User not found
+- **409:** "Username already taken" or "Email already registered"
 
 ---
 
-### 4.4 Users Delete – User löschen (Admin)
+### 4.4 Users Delete – Delete user (Admin)
 
 **`DELETE /api/v1/users/<id>`**
 
-User endgültig löschen. Nur **admin**. News-Einträge des Users bleiben erhalten, `author_id` wird auf `null` gesetzt.
+Permanently delete a user. **Admin** only. The user's news entries are kept; `author_id` is set to `null`.
 
-- **Rate Limit:** 30 pro Minute  
-- **Auth:** Bearer JWT, Rolle **admin**  
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **admin**  
 
 **Response:**
 
 - **200 OK:** `{ "message": "Deleted" }`
-- **403:** Kein Admin
-- **404:** User nicht gefunden
+- **403:** Not admin
+- **404:** User not found
 
 ---
 
-## 5. Allgemeines
+## 5. General
 
-### 5.1 Authentifizierung
+### 5.1 Authentication
 
-- Geschützte Endpoints erwarten den Header: **`Authorization: Bearer <access_token>`**  
-  Das Token erhält man von **`POST /api/v1/auth/login`**.
-- Ungültiger oder abgelaufener Token: **401** mit JSON-`error`.
-- Gültiger Token, aber unzureichende Rechte (z. B. Rolle `user` bei News-Schreibzugriff): **403 Forbidden**.
+- Protected endpoints expect the header: **`Authorization: Bearer <access_token>`**  
+  The token is obtained from **`POST /api/v1/auth/login`**.
+- Invalid or expired token: **401** with JSON `error`.
+- Valid token but insufficient rights (e.g. role `user` for news write): **403 Forbidden**.
 
-### 5.2 Fehlerantworten
+### 5.2 Error responses
 
-- API-Fehler sind JSON: `{ "error": "<Meldung>" }`.
-- Bei fehlendem oder ungültigem JSON-Body: **400** mit entsprechender `error`-Meldung.
+- API errors are JSON: `{ "error": "<message>" }`.
+- Missing or invalid JSON body: **400** with corresponding `error` message.
 
 ### 5.3 CORS
 
-- Wenn Frontend und Backend unterschiedliche Origins nutzen, muss **CORS_ORIGINS** im Backend gesetzt werden (z. B. `http://localhost:5001,http://127.0.0.1:5001`), damit der Browser API-Aufrufe erlaubt.
+- When frontend and backend use different origins, **CORS_ORIGINS** must be set in the backend (e.g. `http://localhost:5001,http://127.0.0.1:5001`) so the browser allows API requests.
 
-### 5.4 Rate Limits
+### 5.4 Rate limits
 
-- Pro Endpoint gelten die oben genannten Limits (z. B. 10/min Register, 20/min Login, 60/min Health/News List). Überschreitung führt in der Regel zu **429 Too Many Requests** (konfigurationsabhängig).
+- Per-endpoint limits are as stated above (e.g. 10/min Register, 20/min Login, 60/min Health/News List). Exceeding them typically returns **429 Too Many Requests** (depending on config).

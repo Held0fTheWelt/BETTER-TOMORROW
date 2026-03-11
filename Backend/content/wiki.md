@@ -1,23 +1,23 @@
 # World of Shadows – Wiki
 
-Willkommen im Wiki zu **World of Shadows** (Blackveign).
+Welcome to the **World of Shadows** (Blackveign) wiki.
 
-## Über das Projekt
+## About the project
 
-World of Shadows ist ein Flask-basiertes Backend mit API, Authentifizierung, News-System und E-Mail-Verifikation. Das Frontend konsumiert die API; Login, Registrierung und Dashboard werden vom Backend bereitgestellt.
+World of Shadows is a Flask-based backend with API, authentication, news system, and email verification. The frontend consumes the API; login, registration, and dashboard are provided by the backend.
 
-## Inhalte
+## Contents
 
-- **News:** Veröffentlichte Artikel unter `/news` (bzw. Frontend) und über die API `GET /api/v1/news`.
-- **Registrierung & Login:** E-Mail-Verifikation (Aktivierungs-Link) ist aktiv; ohne Verifikation ist der Login gesperrt.
-- **User & Rollen:** Rollen `user`, `editor`, `admin`. Editor/Admin können News erstellen und bearbeiten; Admin hat Zugriff auf die User-Verwaltung (CRUD über die API).
+- **News:** Published articles at `/news` (or via the frontend) and via the API `GET /api/v1/news`.
+- **Registration & login:** Email verification (activation link) is required; login is blocked until verification.
+- **Users & roles:** Roles `user`, `editor`, `admin`. Editors and admins can create and edit news; admins have access to user management (CRUD via the API).
 
-## Technik
+## Technical stack
 
-- **Backend:** Flask, SQLAlchemy, Flask-Migrate, JWT (API), Session (Web), Flask-Mail.
-- **API-Dokumentation:** Siehe `docs/BackendApi.md`.
-- **Runbook:** Siehe `docs/runbook.md` für lokale Befehle (PowerShell und Bash, `flask` und `python -m flask`).
+- **Backend:** Flask, SQLAlchemy, Flask-Migrate, JWT (API), session (web), Flask-Mail.
+- **API documentation:** See `docs/BackendApi.md`.
+- **Runbook:** See `docs/runbook.md` for local commands (PowerShell and Bash, `flask` and `python -m flask`).
 
 ---
 
-*Dieses Wiki wird aus der Markdown-Datei `Backend/content/wiki.md` generiert.*
+*This wiki is generated from the Markdown file `Backend/content/wiki.md`.*

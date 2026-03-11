@@ -6,9 +6,20 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ## [Unreleased]
 
+_(No changes yet.)_
+
+---
+
+## [0.0.9] - 2026-03-11
+
 ### Added
 
-- **Wiki-Seite:** Eigene View-Seite unter `/wiki`, erreichbar über den Button ?Wiki? im Header. Inhalt wird aus der Markdown-Datei `Backend/content/wiki.md` geladen und mit der Python-Bibliothek `markdown` (Extension ?extra?) in HTML gerendert; bei fehlender Datei wird ?Coming soon? angezeigt. Neues Stylesheet `app/static/wiki.css` für die Wiki-Prose; Template `wiki.html` erweitert `base.html`. Abhängigkeit `markdown>=3.5,<4` in `requirements.txt`. Test: `test_wiki_returns_200` in `test_web.py`.
+- **Wiki page:** Dedicated view at `/wiki`, reachable via the "Wiki" button in the header. Content is loaded from the Markdown file `Backend/content/wiki.md` and rendered to HTML with the Python `markdown` library (extension "extra"); if the file is missing, "Coming soon" is shown. New stylesheet `app/static/wiki.css` for wiki prose; template `wiki.html` extends `base.html`. Dependency `markdown>=3.5,<4` in `requirements.txt`. Test: `test_wiki_returns_200` in `test_web.py`.
+- **Startup mode log:** On backend startup, a single line is always logged indicating the current mode: `Running BLACKVEIN Backend [mode: TESTING]`, `[mode: NORMAL (MAIL_ENABLED=1)]`, or `[mode: DEV (MAIL_ENABLED=0)]` (`app/__init__.py`).
+
+### Changed
+
+- **Email verification (dev):** When `MAIL_ENABLED=0` or `TESTING=True`, the activation link is logged at WARNING level on register/resend ("DEV email verification mode (...). Activation URL for 'user': ...") so it appears in the same terminal as HTTP logs (`app/services/mail_service.py`).
 
 ---
 
@@ -16,16 +27,16 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ### Added
 
-- **User-CRUD API:** Vollst?ndiges CRUD f?r User unter `/api/v1/users`: `GET /api/v1/users` (Liste, nur Admin, paginiert mit `page`, `limit`, `q`), `GET /api/v1/users/<id>` (ein User, Admin oder Self), `PUT /api/v1/users/<id>` (Update, Admin oder Self; Body: optional `username`, `email`, `password`, `current_password`, `role` nur Admin), `DELETE /api/v1/users/<id>` (nur Admin). Service-Layer: `get_user_by_id`, `list_users`, `update_user`, `delete_user` in `user_service.py`; Berechtigungen `get_current_user()` und `current_user_is_admin()` in `app.auth.permissions`. Beim L?schen: News des Users behalten `author_id=None`, Reset- und Verifikations-Tokens werden gel?scht.
-- **User-Modell:** `to_dict(include_email=False)` erweitert; Auth-Responses (Login, Me) liefern f?r den eigenen User optional `email`.
-- **BackendApi.md:** Abschnitt **4. Users (CRUD)** mit allen Endpoints, Query-/Body-Parametern und Response-Formaten; Abschnitt 5. Allgemeines umnummeriert.
-- **Postman:** Ordner **Users** in der Collection: Users List (Admin), Users Get (self), Users Update (self), Users Get (404), Users Delete (Admin, nutzt `target_user_id`). Variable `target_user_id` in Collection und Environments; Users List setzt sie auf einen anderen User f?r Delete. `postman/README.md` und Collection-Beschreibung um Users und Admin-Hinweis erg?nzt.
-- **Runbook:** Alle Befehle in **zwei Schreibweisen** (Kurzform `flask` / Python-Form `python -m flask`) und f?r **PowerShell** sowie **Bash/Terminal** getrennt dokumentiert. Tabelle ?Weitere n?tzliche Befehle? (Migrationen, stamp, seed-dev-user, seed-news, pytest). API-flow mit curl-Beispielen f?r Bash und PowerShell. Troubleshooting: `&&` in PowerShell, `flask` nicht gefunden ? `python -m flask`.
+- **User CRUD API:** Full CRUD for users at `/api/v1/users`: `GET /api/v1/users` (list, admin only, paginated with `page`, `limit`, `q`), `GET /api/v1/users/<id>` (single user, admin or self), `PUT /api/v1/users/<id>` (update, admin or self; body: optional `username`, `email`, `password`, `current_password`, `role` admin only), `DELETE /api/v1/users/<id>` (admin only). Service layer: `get_user_by_id`, `list_users`, `update_user`, `delete_user` in `user_service.py`; permissions `get_current_user()` and `current_user_is_admin()` in `app.auth.permissions`. On delete: user's news keep `author_id=None`; reset and verification tokens are removed.
+- **User model:** `to_dict(include_email=False)` extended; auth responses (login, me) include `email` for the current user when requested.
+- **BackendApi.md:** Section **4. Users (CRUD)** with all endpoints, query/body parameters and response formats; section 5 (General) renumbered.
+- **Postman:** "Users" folder in the collection: Users List (admin), Users Get (self), Users Update (self), Users Get (404), Users Delete (admin, uses `target_user_id`). Variable `target_user_id` in collection and environments; Users List sets it to another user for Delete. `postman/README.md` and collection description updated for users and admin usage.
+- **Runbook:** All commands documented in **two forms** (short `flask` / Python form `python -m flask`) and for **PowerShell** as well as **Bash/Terminal**. Table "Further useful commands" (migrations, stamp, seed-dev-user, seed-news, pytest). API flow with curl examples for Bash and PowerShell. Troubleshooting: `&&` in PowerShell, `flask` not found ? `python -m flask`.
 
 ### Changed
 
-- **Config:** `MAIL_USE_TLS` Standard von `True` auf `False` ge?ndert (lokaler SMTP ohne TLS).
-- **Auth API:** Login- und Me-Response enthalten f?r den eingeloggten User das Feld `email`.
+- **Config:** `MAIL_USE_TLS` default changed from `True` to `False` (local SMTP without TLS).
+- **Auth API:** Login and Me responses include `email` for the logged-in user.
 
 ---
 
@@ -33,21 +44,21 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ### Added
 
-- **E-Mail-Verifikation bei Registrierung:** Neue User m?ssen ihre E-Mail-Adresse best?tigen, bevor sie sich einloggen k?nnen (Web-Session und API-JWT). Nach der Registrierung (Web und API) wird ein zeitlich begrenzter Activation-Token erzeugt und eine Verifikations-E-Mail gesendet (oder in Dev/ohne MAIL_ENABLED nur geloggt). Aktivierungs-URL: `/activate/<token>`; G?ltigkeit konfigurierbar ?ber `EMAIL_VERIFICATION_TTL_HOURS` (Standard 24).
-- **User-Modell:** Spalte `email_verified_at` (nullable DateTime); Migration `005_add_email_verified_at`.
-- **EmailVerificationToken:** Neues Modell und Tabelle `email_verification_tokens` (token_hash, user_id, created_at, expires_at, used_at, invalidated_at, purpose, sent_to_email); Migration `006_email_verification_tokens`. Token-Erzeugung wie beim Password-Reset (secrets.token_urlsafe(32), SHA-256-Hash).
-- **Service-Layer:** `create_email_verification_token`, `invalidate_existing_verification_tokens`, `get_valid_verification_token`, `verify_email_with_token` in `user_service.py`. `send_verification_email` in `mail_service.py` (nutzt `APP_PUBLIC_BASE_URL` oder url_for f?r Aktivierungs-Link; bei MAIL_ENABLED=False oder TESTING nur Log).
-- **Web-Registrierung:** Nach erfolgreicher Registrierung Redirect auf `/register/pending` mit Hinweis, E-Mail zu pr?fen; Token wird angelegt und Verifikations-E-Mail versendet.
-- **Neue Web-Routen:** `GET /register/pending`, `GET /activate/<token>`, `GET/POST /resend-verification` (generische Erfolgsmeldung, keine User-Enumeration; bestehende Tokens werden invalidiert). Templates: `register_pending.html`, `resend_verification.html`.
-- **Login-Enforcement:** Web-Login und `require_web_login`: User mit E-Mail aber ohne `email_verified_at` k?nnen sich nicht einloggen (Session wird nicht gesetzt bzw. gel?scht, Flash-Hinweis). API `POST /auth/login`: bei unverifizierter E-Mail Antwort 403 mit `{"error": "Email not verified."}`.
-- **Config:** `MAIL_ENABLED`, `MAIL_USE_SSL`, `APP_PUBLIC_BASE_URL`, `EMAIL_VERIFICATION_TTL_HOURS` in `app/config.py`. Bestehende Mail-Konfiguration (MAIL_SERVER, MAIL_PORT, ?) unver?ndert.
-- **Tests:** `test_register_post_success_redirects_to_pending`, `test_register_pending_get_returns_200`, `test_activate_valid_token_redirects_to_login`, `test_login_blocked_for_unverified_user`, `test_resend_verification_get_returns_200`, `test_login_unverified_email_returns_403`. Fixture `test_user_with_email` setzt `email_verified_at`, damit Reset-/Login-Tests weiter funktionieren. Audit-Dokument `Backend/docs/PHASE1_AUDIT_0.0.7.md`.
-- **Postman:** Vollst?ndige Test-Umgebung und Test-Suite: Zwei Environments (?World of Shadows ? Local?, ?World of Shadows ? Test?) mit `baseUrl`, `apiPath`, `username`, `password`, `email`, `access_token`, `user_id`, `news_id`, `register_username`, `register_email`, `register_password`. Collection mit Test-Skripten f?r alle Requests: Auth (Register, Login, Login invalid, Me, Me no token), System (Health, Test Protected), News (List, Detail, Detail 404). Assertions f?r Status-Codes und Response-Body; Login setzt Token und `user_id`, News List setzt `news_id`. `postman/README.md` mit Anleitung (Import, Variablen, Collection Runner).
+- **Email verification on registration:** New users must verify their email before they can log in (web session and API JWT). After registration (web and API), a time-limited activation token is created and a verification email is sent (or only logged in dev when MAIL_ENABLED is off). Activation URL: `/activate/<token>`; validity configurable via `EMAIL_VERIFICATION_TTL_HOURS` (default 24).
+- **User model:** Column `email_verified_at` (nullable DateTime); migration `005_add_email_verified_at`.
+- **EmailVerificationToken:** New model and table `email_verification_tokens` (token_hash, user_id, created_at, expires_at, used_at, invalidated_at, purpose, sent_to_email); migration `006_email_verification_tokens`. Token creation as with password reset (secrets.token_urlsafe(32), SHA-256 hash).
+- **Service layer:** `create_email_verification_token`, `invalidate_existing_verification_tokens`, `get_valid_verification_token`, `verify_email_with_token` in `user_service.py`. `send_verification_email` in `mail_service.py` (uses `APP_PUBLIC_BASE_URL` or url_for for activation link; when MAIL_ENABLED=False or TESTING, only logs).
+- **Web registration:** After successful registration, redirect to `/register/pending` with instructions to check email; token is created and verification email sent.
+- **New web routes:** `GET /register/pending`, `GET /activate/<token>`, `GET/POST /resend-verification` (generic success message, no user enumeration; existing tokens invalidated). Templates: `register_pending.html`, `resend_verification.html`.
+- **Login enforcement:** Web login and `require_web_login`: users with email but no `email_verified_at` cannot log in (session not set or cleared, flash message). API `POST /auth/login`: for unverified email returns 403 with `{"error": "Email not verified."}`.
+- **Config:** `MAIL_ENABLED`, `MAIL_USE_SSL`, `APP_PUBLIC_BASE_URL`, `EMAIL_VERIFICATION_TTL_HOURS` in `app/config.py`. Existing mail config (MAIL_SERVER, MAIL_PORT, etc.) unchanged.
+- **Tests:** `test_register_post_success_redirects_to_pending`, `test_register_pending_get_returns_200`, `test_activate_valid_token_redirects_to_login`, `test_login_blocked_for_unverified_user`, `test_resend_verification_get_returns_200`, `test_login_unverified_email_returns_403`. Fixture `test_user_with_email` sets `email_verified_at` so reset/login tests keep working. Audit doc `Backend/docs/PHASE1_AUDIT_0.0.7.md`.
+- **Postman:** Full test environment and test suite: two environments ("World of Shadows ? Local", "World of Shadows ? Test") with `baseUrl`, `apiPath`, `username`, `password`, `email`, `access_token`, `user_id`, `news_id`, `register_username`, `register_email`, `register_password`. Collection with test scripts for all requests: Auth (Register, Login, Login invalid, Me, Me no token), System (Health, Test Protected), News (List, Detail, Detail 404). Assertions for status codes and response body; Login sets token and `user_id`, News List sets `news_id`. `postman/README.md` with instructions (import, variables, Collection Runner).
 
 ### Changed
 
-- **Registrierung (Web):** Redirect nach Erfolg von Login auf `/register/pending`.
-- **Registrierung (API):** Nach `create_user` werden Verifikations-Token erzeugt und E-Mail gesendet; Login bleibt bis Verifikation mit 403 blockiert.
+- **Registration (web):** Redirect after success changed from login to `/register/pending`.
+- **Registration (API):** After `create_user`, verification tokens are created and email sent; login remains blocked with 403 until verification.
 
 ---
 
@@ -160,8 +171,6 @@ All notable changes to the World of Shadows project are documented in this file.
 
 - **Test suite:** Pytest tests for web and API (19 tests), in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
 - **Planning docs:** Milestone list and execution prompts for staged rebuild (no code changes).
-- Test suite: Pytest tests for web and API, in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
-- Planning docs: Milestone list and execution prompts for staged rebuild (no code changes).
 
 ---
 

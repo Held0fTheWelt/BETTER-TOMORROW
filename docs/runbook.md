@@ -1,33 +1,33 @@
 # Runbook — Local development
 
-**Befehle:** Jeweils zuerst die **Kurzform** (z. B. `flask`), danach die **Python-Form** (`python -m flask`), damit sie in jeder Umgebung funktionieren. Unter **PowerShell** Zeilen mit `;` trennen oder eine Zeile pro Befehl; Umgebungsvariablen mit `$env:NAME = "value"`. Unter **Bash/Terminal** `export NAME=value` und bei Mehrzeilern `\` am Zeilenende.
+**Commands:** For each step, the **short form** (e.g. `flask`) is given first, then the **Python form** (`python -m flask`), so they work in any environment. On **PowerShell**, separate lines with `;` or use one command per line; set environment variables with `$env:NAME = "value"`. On **Bash/Terminal** use `export NAME=value` and for multi-line commands use `\` at end of line.
 
 ---
 
 ## One-time setup
 
-**Bash / Terminal (z. B. Git Bash, WSL, macOS/Linux):**
+**Bash / Terminal (e.g. Git Bash, WSL, macOS/Linux):**
 
 ```bash
 cd Backend
 pip install -r requirements.txt
 cp ../.env.example ../.env
-# .env bearbeiten: SECRET_KEY und JWT_SECRET_KEY setzen (oder DEV_SECRETS_OK=1 für Dev-Fallbacks)
-# FLASK_APP=run:app in .env eintragen oder exportieren
+# Edit .env: set SECRET_KEY and JWT_SECRET_KEY (or DEV_SECRETS_OK=1 for dev fallbacks)
+# Add FLASK_APP=run:app to .env or export it
 flask init-db
-# bzw. mit Python explizit:
+# Or with Python explicitly:
 python -m flask init-db
 
-# Migrationen anwenden (falls vorhanden):
+# Apply migrations (if any):
 flask db upgrade
-# bzw.:
+# Or:
 python -m flask db upgrade
 
-# Optional, nur wenn DEV_SECRETS_OK=1:
+# Optional, only when DEV_SECRETS_OK=1:
 flask seed-dev-user --generate
-# bzw.:
+# Or:
 python -m flask seed-dev-user --generate
-# Oder: SEED_DEV_USERNAME/SEED_DEV_PASSWORD setzen oder --username/--password angeben
+# Or: set SEED_DEV_USERNAME/SEED_DEV_PASSWORD or pass --username/--password
 ```
 
 **PowerShell (Windows):**
@@ -36,27 +36,27 @@ python -m flask seed-dev-user --generate
 cd Backend
 pip install -r requirements.txt
 Copy-Item ..\.env.example ..\.env
-# .env bearbeiten: SECRET_KEY und JWT_SECRET_KEY (oder DEV_SECRETS_OK=1)
-# FLASK_APP=run:app in .env eintragen oder: $env:FLASK_APP = "run:app"
+# Edit .env: SECRET_KEY and JWT_SECRET_KEY (or DEV_SECRETS_OK=1)
+# Add FLASK_APP=run:app to .env or: $env:FLASK_APP = "run:app"
 
 flask init-db
-# bzw. mit Python explizit:
+# Or with Python explicitly:
 python -m flask init-db
 
-# Migrationen anwenden:
+# Apply migrations:
 flask db upgrade
-# bzw.:
+# Or:
 python -m flask db upgrade
 
 # Optional (DEV_SECRETS_OK=1):
 flask seed-dev-user --generate
-# bzw.:
+# Or:
 python -m flask seed-dev-user --generate
 ```
 
 ---
 
-## Server starten
+## Start the server
 
 **Bash / Terminal:**
 
@@ -65,9 +65,9 @@ cd Backend
 export FLASK_APP=run:app
 export FLASK_DEBUG=1
 python run.py
-# Oder mit Flask-CLI:
+# Or with Flask CLI:
 flask run --port 5000
-# bzw.:
+# Or:
 python -m flask run --port 5000
 ```
 
@@ -78,9 +78,9 @@ cd Backend
 $env:FLASK_APP = "run:app"
 $env:FLASK_DEBUG = "1"
 python run.py
-# Oder mit Flask-CLI:
+# Or with Flask CLI:
 flask run --port 5000
-# bzw.:
+# Or:
 python -m flask run --port 5000
 ```
 
@@ -88,49 +88,49 @@ Server: http://127.0.0.1:5000
 
 ---
 
-## Weitere nützliche Befehle (Backend)
+## Further useful commands (Backend)
 
-| Aktion | Kurzform | Mit Python |
-|--------|----------|------------|
-| Migrationen anwenden | `flask db upgrade` | `python -m flask db upgrade` |
-| Neue Migration anlegen | `flask db revision -m "Beschreibung"` | `python -m flask db revision -m "Beschreibung"` |
-| Migrationsstand anzeigen | `flask db current` | `python -m flask db current` |
-| Revision als erledigt markieren (ohne ausführen) | `flask db stamp 006_evt` | `python -m flask db stamp 006_evt` |
-| Dev-User anlegen | `flask seed-dev-user --username dev --password Pass1` | `python -m flask seed-dev-user --username dev --password Pass1` |
-| Beispiel-News anlegen | `flask seed-news` | `python -m flask seed-news` |
-| Tests ausführen | `pytest tests` | `python -m pytest tests` |
-| Tests ohne Coverage | `pytest tests --no-cov` | `python -m pytest tests --no-cov` |
+| Action | Short form | With Python |
+|--------|------------|-------------|
+| Apply migrations | `flask db upgrade` | `python -m flask db upgrade` |
+| Create new migration | `flask db revision -m "description"` | `python -m flask db revision -m "description"` |
+| Show migration status | `flask db current` | `python -m flask db current` |
+| Stamp revision (without running) | `flask db stamp 006_evt` | `python -m flask db stamp 006_evt` |
+| Create dev user | `flask seed-dev-user --username dev --password Pass1` | `python -m flask seed-dev-user --username dev --password Pass1` |
+| Seed example news | `flask seed-news` | `python -m flask seed-news` |
+| Run tests | `pytest tests` | `python -m pytest tests` |
+| Run tests without coverage | `pytest tests --no-cov` | `python -m pytest tests --no-cov` |
 
-**PowerShell:** Alle Befehle aus dem Backend-Verzeichnis (`cd Backend`) ausführen; bei mehreren Befehlen mit `;` trennen, z. B. `cd Backend; python -m flask db upgrade`.
+**PowerShell:** Run all commands from the Backend directory (`cd Backend`); for multiple commands in one line, separate with `;`, e.g. `cd Backend; python -m flask db upgrade`.
 
 ---
 
 ## Web flow
 
-1. http://127.0.0.1:5000/ im Browser öffnen.
-2. „Log in“ → Benutzername/Passwort (z. B. vom seed-dev-user) eingeben.
-3. Nach dem Login Weiterleitung auf /dashboard.
-4. „Log out“ (Button im Header) → POST zum Logout.
+1. Open http://127.0.0.1:5000/ in the browser.
+2. "Log in" → enter username/password (e.g. from seed-dev-user).
+3. After login you are redirected to /dashboard.
+4. "Log out" (button in header) → POST to logout.
 
 ---
 
-## API flow (Beispiel)
+## API flow (example)
 
 **Bash / Terminal:**
 
 ```bash
-# 1. Registrieren (oder bestehenden User nutzen)
+# 1. Register (or use existing user)
 curl -X POST http://127.0.0.1:5000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"alice","email":"alice@example.com","password":"Alice123"}'
 
-# 2. Login, Token aus Response holen
+# 2. Login, get token from response
 TOKEN=$(curl -s -X POST http://127.0.0.1:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"alice","password":"Alice123"}' \
   | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-# 3. Geschützte Route aufrufen
+# 3. Call protected route
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/auth/me
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/protected
 ```
@@ -138,18 +138,18 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/protect
 **PowerShell:**
 
 ```powershell
-# 1. Registrieren
+# 1. Register
 curl.exe -X POST http://127.0.0.1:5000/api/v1/auth/register `
   -H "Content-Type: application/json" `
   -d '{\"username\":\"alice\",\"email\":\"alice@example.com\",\"password\":\"Alice123\"}'
 
-# 2. Login, Token in Variable
+# 2. Login, store token in variable
 $response = curl.exe -s -X POST http://127.0.0.1:5000/api/v1/auth/login `
   -H "Content-Type: application/json" `
   -d '{\"username\":\"alice\",\"password\":\"Alice123\"}'
 $TOKEN = ( $response | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])" )
 
-# 3. Geschützte Route
+# 3. Protected route
 curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/auth/me
 curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/protected
 ```
@@ -163,18 +163,18 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/pro
 
 ---
 
-## Fehler & Limits
+## Errors & limits
 
-- **Web-Routen** (z. B. `/`, `/login`, `/dashboard`): 404/500 als HTML (Templates).
-- **API-Routen** (unter `/api/`): 404, 429, 500 und JWT-401 als JSON `{"error": "..."}`.
-- **Rate Limit:** 429 als JSON; Standard aus `RATELIMIT_DEFAULT`.
+- **Web routes** (e.g. `/`, `/login`, `/dashboard`): 404/500 as HTML (templates).
+- **API routes** (under `/api/`): 404, 429, 500 and JWT 401 as JSON `{"error": "..."}`.
+- **Rate limit:** 429 as JSON; default from `RATELIMIT_DEFAULT`.
 
 ---
 
 ## Troubleshooting
 
-- **SECRET_KEY must be set:** In `.env` `SECRET_KEY` und `JWT_SECRET_KEY` setzen, oder für lokale Dev `DEV_SECRETS_OK=1`.
-- **CSRF invalid on login:** Login-Formular muss CSRF-Token enthalten (in den Templates bereits vorhanden).
-- **CORS-Fehler vom Frontend:** In `.env` `CORS_ORIGINS` auf die Frontend-Origin setzen (z. B. `http://localhost:3000`).
-- **PowerShell: „&&“ unbekannt:** Unter PowerShell Befehle mit `;` trennen (z. B. `cd Backend; python -m flask db upgrade`) oder pro Befehl eine Zeile.
-- **flask: Befehl nicht gefunden:** Statt `flask` immer `python -m flask` verwenden (aus dem Backend-Verzeichnis).
+- **SECRET_KEY must be set:** In `.env` set `SECRET_KEY` and `JWT_SECRET_KEY`, or for local dev set `DEV_SECRETS_OK=1`.
+- **CSRF invalid on login:** Login form must include CSRF token (already present in templates).
+- **CORS errors from frontend:** In `.env` set `CORS_ORIGINS` to the frontend origin (e.g. `http://localhost:3000`).
+- **PowerShell: "&&" unknown:** On PowerShell separate commands with `;` (e.g. `cd Backend; python -m flask db upgrade`) or use one command per line.
+- **flask: command not found:** Use `python -m flask` instead of `flask` (from the Backend directory).
