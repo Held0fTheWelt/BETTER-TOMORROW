@@ -149,6 +149,10 @@ def users_update(user_id):
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
+    if "password" in data or "current_password" in data:
+        return jsonify({
+            "error": "Password changes are not allowed via this endpoint. Use PUT /api/v1/users/<id>/password with current_password and new_password."
+        }), 400
 
     kwargs = {}
     if "username" in data:
