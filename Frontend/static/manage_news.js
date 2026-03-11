@@ -1,15 +1,29 @@
 /**
- * News management: list (with drafts), filters, pagination, create/edit, publish, unpublish, delete.
+ * News management: list (with drafts), filters (status, language), pagination,
+ * create/edit with language tabs (de/en), translation status, save/publish/unpublish/delete,
+ * submit-review, approve, auto-translate. Uses real backend APIs.
  */
 (function() {
     var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
     if (!api) return;
 
-    function $(id) { return document.getElementById(id); }
+    var LANGS = ["de", "en"];
+    var DEFAULT_LANG = "de";
+
+    function $(id) { return id ? document.getElementById(id) : null; }
     function formatDate(iso) {
         if (!iso) return "";
         var d = new Date(iso);
         return isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { dateStyle: "short" });
+    }
+
+    function statusBadge(status) {
+        var c = "badge";
+        if (status === "published") c += " badge-success";
+        else if (status === "approved" || status === "review_required") c += " badge-warning";
+        else if (status === "machine_draft" || status === "outdated") c += " badge-info";
+        else c += " badge-secondary";
+        return "<span class=\"" + c + "\">" + (status || "missing").replace(/</g, "&lt;") + "</span>";
     }
 
     var state = {
@@ -19,6 +33,10 @@
         totalPages: 0,
         selectedId: null,
         items: [],
+        currentLang: DEFAULT_LANG,
+        article: null,
+        translations: null,
+        translationData: { de: null, en: null },
     };
 
     function getListParams() {
@@ -30,11 +48,13 @@
             category: ($("manage-news-category") || {}).value.trim() || undefined,
             sort: ($("manage-news-sort") || {}).value || "published_at",
             direction: ($("manage-news-direction") || {}).value || "desc",
+            include_drafts: "1",
         };
+        var lang = ($("manage-news-lang") || {}).value;
+        if (lang) params.lang = lang;
         if (status === "published") {
             params.published_only = "1";
-        } else {
-            params.include_drafts = "1";
+            delete params.include_drafts;
         }
         return params;
     }
@@ -87,7 +107,7 @@
         var nextBtn = $("manage-news-next");
 
         if (err) err.hidden = true;
-        if (items.length === 0) {
+        if (!items || items.length === 0) {
             if (empty) empty.hidden = false;
             if (wrap) wrap.hidden = true;
             if (pag) pag.hidden = true;
@@ -101,9 +121,12 @@
                 var tr = document.createElement("tr");
                 tr.dataset.id = item.id;
                 if (state.selectedId === item.id) tr.classList.add("selected");
+                var statuses = item.translation_statuses || {};
                 tr.innerHTML =
                     "<td>" + (item.title || "").replace(/</g, "&lt;") + "</td>" +
                     "<td>" + (item.is_published ? "Published" : "Draft") + "</td>" +
+                    "<td>" + statusBadge(statuses.de) + "</td>" +
+                    "<td>" + statusBadge(statuses.en) + "</td>" +
                     "<td>" + (item.category || "").replace(/</g, "&lt;") + "</td>" +
                     "<td>" + formatDate(item.updated_at || item.created_at) + "</td>";
                 tr.addEventListener("click", function() { selectArticle(item.id); });
@@ -134,12 +157,84 @@
                 renderList(items, page, total, perPage);
             })
             .catch(function(e) {
-                showError(e.message || "Failed to load news.");
+                showError(typeof e === "object" && e.message ? e.message : "Failed to load news.");
             });
+    }
+
+    function setTab(lang) {
+        state.currentLang = lang;
+        var tabs = document.querySelectorAll(".manage-news-tab");
+        var panels = document.querySelectorAll(".manage-news-tab-panel");
+        tabs.forEach(function(t) {
+            t.classList.toggle("active", t.getAttribute("data-lang") === lang);
+            t.setAttribute("aria-selected", t.getAttribute("data-lang") === lang ? "true" : "false");
+        });
+        panels.forEach(function(p) {
+            var show = p.getAttribute("data-lang") === lang;
+            p.classList.toggle("active", show);
+            p.hidden = !show;
+        });
+        fillTranslationForm(lang);
+        updateTranslationActions(lang);
+    }
+
+    function fillTranslationForm(lang) {
+        var data = state.translationData[lang];
+        var pre = "manage-news-" + lang + "-";
+        ($(pre + "title") || {}).value = data ? (data.title || "") : "";
+        ($(pre + "slug") || {}).value = data ? (data.slug || "") : "";
+        ($(pre + "summary") || {}).value = data ? (data.summary || "") : "";
+        ($(pre + "content") || {}).value = data ? (data.content || "") : "";
+    }
+
+    function collectTranslationForm(lang) {
+        var pre = "manage-news-" + lang + "-";
+        return {
+            title: ($(pre + "title") || {}).value.trim(),
+            slug: ($(pre + "slug") || {}).value.trim(),
+            summary: ($(pre + "summary") || {}).value.trim() || null,
+            content: ($(pre + "content") || {}).value.trim(),
+        };
+    }
+
+    function updateTranslationStatusDisplay() {
+        var el = $("manage-news-translation-status");
+        if (!el) return;
+        if (!state.translations || !state.article) {
+            el.innerHTML = "";
+            return;
+        }
+        var items = state.translations.items || [];
+        var html = [];
+        items.forEach(function(t) {
+            html.push("<span class=\"manage-news-status-item\"><strong>" + (t.language_code || "").toUpperCase() + "</strong>: " + statusBadge(t.translation_status) + "</span>");
+        });
+        el.innerHTML = html.length ? html.join(" ") : "";
+    }
+
+    function updateTranslationActions(lang) {
+        var data = state.translationData[lang];
+        var status = data ? data.translation_status : "missing";
+        var pubBtn = $("manage-news-publish-btn");
+        var unpubBtn = $("manage-news-unpublish-btn");
+        var pubTransBtn = $("manage-news-publish-translation-btn");
+        var submitReviewBtn = $("manage-news-submit-review-btn");
+        var approveBtn = $("manage-news-approve-btn");
+        var autoBtn = $("manage-news-auto-translate-btn");
+        if (pubBtn) pubBtn.hidden = !state.article || !!state.article.is_published;
+        if (unpubBtn) unpubBtn.hidden = !state.article || !state.article.is_published;
+        if (pubTransBtn) pubTransBtn.hidden = !data || status === "published";
+        if (submitReviewBtn) submitReviewBtn.hidden = !data || status === "review_required" || status === "approved" || status === "published";
+        if (approveBtn) approveBtn.hidden = !data || status !== "review_required";
+        if (autoBtn) autoBtn.hidden = !state.selectedId;
     }
 
     function selectArticle(id) {
         state.selectedId = id;
+        state.article = null;
+        state.translations = null;
+        state.translationData = { de: null, en: null };
+
         var tbody = $("manage-news-tbody");
         if (tbody) {
             [].forEach.call(tbody.querySelectorAll("tr"), function(tr) {
@@ -155,37 +250,60 @@
         }
         if (empty) empty.hidden = true;
         if (form) form.hidden = false;
+
         api("/api/v1/news/" + id)
             .then(function(article) {
+                state.article = article;
                 ($("manage-news-id") || {}).value = article.id;
-                ($("manage-news-title") || {}).value = article.title || "";
-                ($("manage-news-slug") || {}).value = article.slug || "";
-                ($("manage-news-summary") || {}).value = article.summary || "";
-                ($("manage-news-content") || {}).value = article.content || "";
                 ($("manage-news-category-edit") || {}).value = article.category || "";
                 ($("manage-news-cover") || {}).value = article.cover_image || "";
-                ($("manage-news-published") || {}).checked = !!article.is_published;
+                state.translationData[article.language_code || DEFAULT_LANG] = {
+                    title: article.title,
+                    slug: article.slug,
+                    summary: article.summary,
+                    content: article.content,
+                    translation_status: "published",
+                };
+                return api("/api/v1/news/" + id + "/translations");
+            })
+            .then(function(res) {
+                state.translations = res;
+                (res.items || []).forEach(function(t) {
+                    state.translationData[t.language_code] = state.translationData[t.language_code] || {
+                        title: t.title,
+                        slug: t.slug,
+                        summary: t.summary,
+                        translation_status: t.translation_status,
+                    };
+                });
+                setTab(state.currentLang);
+                updateTranslationStatusDisplay();
+                ($("manage-news-editor-title") || {}).textContent = "Edit article";
                 var pubBtn = $("manage-news-publish-btn");
                 var unpubBtn = $("manage-news-unpublish-btn");
-                if (pubBtn) pubBtn.hidden = !!article.is_published;
-                if (unpubBtn) unpubBtn.hidden = !article.is_published;
-                ($("manage-news-editor-title") || {}).textContent = "Edit article";
+                if (pubBtn) pubBtn.hidden = !!(state.article && state.article.is_published);
+                if (unpubBtn) unpubBtn.hidden = !(state.article && state.article.is_published);
             })
             .catch(function(e) {
-                showError(e.message || "Failed to load article.");
+                showError(typeof e === "object" && e.message ? e.message : "Failed to load article.");
             });
     }
 
     function showFormEmpty() {
         state.selectedId = null;
+        state.article = null;
+        state.translations = null;
+        state.translationData = { de: null, en: null };
         ($("manage-news-id") || {}).value = "";
-        ($("manage-news-title") || {}).value = "";
-        ($("manage-news-slug") || {}).value = "";
-        ($("manage-news-summary") || {}).value = "";
-        ($("manage-news-content") || {}).value = "";
         ($("manage-news-category-edit") || {}).value = "";
         ($("manage-news-cover") || {}).value = "";
-        ($("manage-news-published") || {}).checked = false;
+        LANGS.forEach(function(lang) {
+            var pre = "manage-news-" + lang + "-";
+            ($(pre + "title") || {}).value = "";
+            ($(pre + "slug") || {}).value = "";
+            ($(pre + "summary") || {}).value = "";
+            ($(pre + "content") || {}).value = "";
+        });
         var form = $("manage-news-form");
         var empty = $("manage-news-editor-empty");
         if (form) form.hidden = true;
@@ -212,37 +330,81 @@
         e.preventDefault();
         var idEl = $("manage-news-id");
         var id = (idEl && idEl.value) ? idEl.value.trim() : "";
-        var title = ($("manage-news-title") || {}).value.trim();
-        var slug = ($("manage-news-slug") || {}).value.trim();
-        var content = ($("manage-news-content") || {}).value.trim();
-        if (!title || !slug || !content) {
-            showFormError("Title, slug, and content are required.");
+
+        if (!id) {
+            var de = collectTranslationForm("de");
+            if (!de.title || !de.slug || !de.content) {
+                showFormError("Title, slug, and content (DE) are required for new article.");
+                return;
+            }
+            var payload = {
+                title: de.title,
+                slug: de.slug,
+                summary: de.summary,
+                content: de.content,
+                category: ($("manage-news-category-edit") || {}).value.trim() || null,
+                cover_image: ($("manage-news-cover") || {}).value.trim() || null,
+                is_published: false,
+            };
+            var saveBtn = $("manage-news-save");
+            if (saveBtn) saveBtn.disabled = true;
+            api("/api/v1/news", { method: "POST", body: JSON.stringify(payload) })
+                .then(function(article) {
+                    showFormSuccess("Created.");
+                    if (saveBtn) saveBtn.disabled = false;
+                    state.selectedId = article.id;
+                    if (idEl) idEl.value = article.id;
+                    fetchList();
+                    selectArticle(article.id);
+                })
+                .catch(function(e) {
+                    showFormError(typeof e === "object" && e.message ? e.message : "Create failed.");
+                    if (saveBtn) saveBtn.disabled = false;
+                });
             return;
         }
-        var payload = {
-            title: title,
-            slug: slug,
-            summary: ($("manage-news-summary") || {}).value.trim() || null,
-            content: content,
+
+        var lang = state.currentLang;
+        var trans = collectTranslationForm(lang);
+        var payloadBase = {
             category: ($("manage-news-category-edit") || {}).value.trim() || null,
             cover_image: ($("manage-news-cover") || {}).value.trim() || null,
-            is_published: !!($("manage-news-published") || {}).checked,
         };
         var saveBtn = $("manage-news-save");
         if (saveBtn) saveBtn.disabled = true;
-        var req = id
-            ? api("/api/v1/news/" + id, { method: "PUT", body: JSON.stringify(payload) })
-            : api("/api/v1/news", { method: "POST", body: JSON.stringify(payload) });
-        req.then(function(article) {
-            showFormSuccess(id ? "Updated." : "Created.");
-            if (saveBtn) saveBtn.disabled = false;
-            state.selectedId = article.id;
-            if (idEl) idEl.value = article.id;
-            fetchList();
-        }).catch(function(e) {
-            showFormError(e.message || "Save failed.");
-            if (saveBtn) saveBtn.disabled = false;
-        });
+
+        Promise.all([
+            api("/api/v1/news/" + id, { method: "PUT", body: JSON.stringify(payloadBase) }),
+            api("/api/v1/news/" + id + "/translations/" + lang, {
+                method: "PUT",
+                body: JSON.stringify({
+                    title: trans.title,
+                    slug: trans.slug,
+                    summary: trans.summary,
+                    content: trans.content,
+                }),
+            }),
+        ])
+            .then(function() {
+                showFormSuccess("Saved.");
+                if (saveBtn) saveBtn.disabled = false;
+                state.translationData[lang] = state.translationData[lang] || {};
+                state.translationData[lang].title = trans.title;
+                state.translationData[lang].slug = trans.slug;
+                state.translationData[lang].summary = trans.summary;
+                state.translationData[lang].content = trans.content;
+                fetchList();
+                return api("/api/v1/news/" + id + "/translations");
+            })
+            .then(function(res) {
+                state.translations = res;
+                updateTranslationStatusDisplay();
+                updateTranslationActions(lang);
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Save failed.");
+                if (saveBtn) saveBtn.disabled = false;
+            });
     }
 
     function onPublish() {
@@ -255,7 +417,7 @@
                 fetchList();
             })
             .catch(function(e) {
-                showFormError(e.message || "Publish failed.");
+                showFormError(typeof e === "object" && e.message ? e.message : "Publish failed.");
             });
     }
 
@@ -269,7 +431,84 @@
                 fetchList();
             })
             .catch(function(e) {
-                showFormError(e.message || "Unpublish failed.");
+                showFormError(typeof e === "object" && e.message ? e.message : "Unpublish failed.");
+            });
+    }
+
+    function onSubmitReview() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        var lang = state.currentLang;
+        api("/api/v1/news/" + id + "/translations/" + lang + "/submit-review", { method: "POST" })
+            .then(function(data) {
+                state.translationData[lang] = state.translationData[lang] || {};
+                state.translationData[lang].translation_status = data.translation_status;
+                showFormSuccess("Submitted for review.");
+                return api("/api/v1/news/" + id + "/translations");
+            })
+            .then(function(res) {
+                state.translations = res;
+                updateTranslationStatusDisplay();
+                updateTranslationActions(lang);
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Submit failed.");
+            });
+    }
+
+    function onApprove() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        var lang = state.currentLang;
+        api("/api/v1/news/" + id + "/translations/" + lang + "/approve", { method: "POST" })
+            .then(function(data) {
+                state.translationData[lang] = state.translationData[lang] || {};
+                state.translationData[lang].translation_status = data.translation_status;
+                showFormSuccess("Approved.");
+                return api("/api/v1/news/" + id + "/translations");
+            })
+            .then(function(res) {
+                state.translations = res;
+                updateTranslationStatusDisplay();
+                updateTranslationActions(lang);
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Approve failed.");
+            });
+    }
+
+    function onPublishTranslation() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        var lang = state.currentLang;
+        api("/api/v1/news/" + id + "/translations/" + lang + "/publish", { method: "POST" })
+            .then(function(data) {
+                state.translationData[lang] = state.translationData[lang] || {};
+                state.translationData[lang].translation_status = data.translation_status;
+                showFormSuccess("Translation published.");
+                return api("/api/v1/news/" + id + "/translations");
+            })
+            .then(function(res) {
+                state.translations = res;
+                updateTranslationStatusDisplay();
+                updateTranslationActions(lang);
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Publish failed.");
+            });
+    }
+
+    function onAutoTranslate() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        api("/api/v1/news/" + id + "/translations/auto-translate", { method: "POST", body: JSON.stringify({}) })
+            .then(function(res) {
+                showFormSuccess("Auto-translate requested. Refresh or reselect to see new translations.");
+                state.translations = res.translations ? { items: res.translations } : res;
+                updateTranslationStatusDisplay();
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Auto-translate failed.");
             });
     }
 
@@ -283,7 +522,7 @@
                 fetchList();
             })
             .catch(function(e) {
-                showFormError(e.message || "Delete failed.");
+                showFormError(typeof e === "object" && e.message ? e.message : "Delete failed.");
             });
     }
 
@@ -293,11 +532,11 @@
         var empty = $("manage-news-editor-empty");
         if (empty) empty.hidden = true;
         if (form) form.hidden = false;
+        setTab("de");
         ($("manage-news-editor-title") || {}).textContent = "New article";
-        var pubBtn = $("manage-news-publish-btn");
-        var unpubBtn = $("manage-news-unpublish-btn");
-        if (pubBtn) pubBtn.hidden = true;
-        if (unpubBtn) unpubBtn.hidden = true;
+        [$("manage-news-publish-btn"), $("manage-news-unpublish-btn"), $("manage-news-submit-review-btn"), $("manage-news-approve-btn"), $("manage-news-auto-translate-btn")].forEach(function(btn) {
+            if (btn) btn.hidden = true;
+        });
     }
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -307,6 +546,10 @@
         var saveBtn = $("manage-news-save");
         var pubBtn = $("manage-news-publish-btn");
         var unpubBtn = $("manage-news-unpublish-btn");
+        var submitReviewBtn = $("manage-news-submit-review-btn");
+        var approveBtn = $("manage-news-approve-btn");
+        var publishTransBtn = $("manage-news-publish-translation-btn");
+        var autoBtn = $("manage-news-auto-translate-btn");
         var delBtn = $("manage-news-delete-btn");
         var prevBtn = $("manage-news-prev");
         var nextBtn = $("manage-news-next");
@@ -316,12 +559,40 @@
         if (form) form.addEventListener("submit", onSave);
         if (pubBtn) pubBtn.addEventListener("click", onPublish);
         if (unpubBtn) unpubBtn.addEventListener("click", onUnpublish);
+        if (submitReviewBtn) submitReviewBtn.addEventListener("click", onSubmitReview);
+        if (approveBtn) approveBtn.addEventListener("click", onApprove);
+        var pubTransBtn = $("manage-news-publish-translation-btn");
+        if (pubTransBtn) pubTransBtn.addEventListener("click", onPublishTranslation);
+        if (autoBtn) autoBtn.addEventListener("click", onAutoTranslate);
         if (delBtn) delBtn.addEventListener("click", onDelete);
         if (prevBtn) prevBtn.addEventListener("click", function() {
             if (state.page > 1) { state.page--; fetchList(); }
         });
         if (nextBtn) nextBtn.addEventListener("click", function() {
             if (state.page < state.totalPages) { state.page++; fetchList(); }
+        });
+
+        document.querySelectorAll(".manage-news-tab").forEach(function(tab) {
+            tab.addEventListener("click", function() {
+                var lang = tab.getAttribute("data-lang");
+                var hasContent = state.translationData[lang] && state.translationData[lang].content !== undefined;
+                if (state.selectedId && !hasContent && (state.translations || {}).items && (state.translations.items || []).some(function(t) { return t.language_code === lang; })) {
+                    api("/api/v1/news/" + state.selectedId + "/translations/" + lang)
+                        .then(function(data) {
+                            state.translationData[lang] = {
+                                title: data.title,
+                                slug: data.slug,
+                                summary: data.summary,
+                                content: data.content,
+                                translation_status: data.translation_status,
+                            };
+                            setTab(lang);
+                        })
+                        .catch(function() { setTab(lang); });
+                } else {
+                    setTab(lang);
+                }
+            });
         });
 
         fetchList();

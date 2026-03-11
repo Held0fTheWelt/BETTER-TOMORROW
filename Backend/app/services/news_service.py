@@ -179,7 +179,17 @@ def list_news(
         if published_only and (article.status != "published" or trans.translation_status != TRANSLATION_STATUS_PUBLISHED):
             continue
         d = _article_to_public_dict(article, trans)
-        if d:
+        if d and published_only:
+            items.append(d)
+            continue
+        if d and not published_only:
+            # Editorial: add translation status per language for list UI
+            status_map = {}
+            for code in get_supported_languages():
+                t = _get_translation_for_lang(article.id, code)
+                status_map[code] = t.translation_status if t else "missing"
+            d["translation_statuses"] = status_map
+            d["default_language"] = article.default_language
             items.append(d)
 
     return items, total
