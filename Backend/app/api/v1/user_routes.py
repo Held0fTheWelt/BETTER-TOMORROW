@@ -47,7 +47,7 @@ def users_list():
     search = request.args.get("q", "").strip() or None
     items, total = list_users(page=page, per_page=limit, search=search)
     return jsonify({
-        "items": [u.to_dict(include_email=True) for u in items],
+        "items": [u.to_dict(include_email=True, include_ban=True) for u in items],
         "total": total,
         "page": page,
         "per_page": limit,
@@ -70,7 +70,8 @@ def users_get(user_id):
     if current.id == user_id and getattr(user, "is_banned", False):
         return jsonify({"error": "Account is restricted."}), 403
     include_email = current_user_is_admin() or current.id == user_id
-    return jsonify(user.to_dict(include_email=include_email)), 200
+    include_ban = current_user_is_admin()
+    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban)), 200
 
 
 @api_v1_bp.route("/users/<int:user_id>", methods=["PUT"])
@@ -137,7 +138,8 @@ def users_update(user_id):
             metadata={"new_role": user.role},
         )
     include_email = current_user_is_admin() or current.id == user.id
-    return jsonify(user.to_dict(include_email=include_email)), 200
+    include_ban = current_user_is_admin()
+    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban)), 200
 
 
 @api_v1_bp.route("/users/<int:user_id>", methods=["DELETE"])
