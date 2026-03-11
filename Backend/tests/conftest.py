@@ -171,6 +171,25 @@ def admin_headers(admin_user, client):
 
 
 @pytest.fixture
+def banned_user(app):
+    """Create a user with is_banned=True (role=user, no email so login would otherwise succeed)."""
+    with app.app_context():
+        role = Role.query.filter_by(name=Role.NAME_USER).first()
+        user = User(
+            username="banneduser",
+            password_hash=generate_password_hash("Bannedpass1"),
+            role_id=role.id,
+            is_banned=True,
+            banned_at=datetime.now(timezone.utc),
+            ban_reason="Test ban",
+        )
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+        return user, "Bannedpass1"
+
+
+@pytest.fixture
 def sample_news(app, test_user):
     """Create sample published and draft news for list/detail/search/sort tests.
     Returns (published_news, published_news_2, draft_news) – two published (different title/sort), one draft."""

@@ -62,6 +62,25 @@ def test_login_get_when_logged_in_redirects_to_dashboard(client, test_user):
     assert "dashboard" in response.location or response.headers.get("Location", "").endswith("/dashboard")
 
 
+def test_login_banned_user_redirects_to_blocked(client, banned_user):
+    """POST /login with banned user redirects to /blocked and shows restricted message."""
+    user, password = banned_user
+    response = client.post(
+        "/login",
+        data={"username": user.username, "password": password},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"restricted" in response.data.lower() or b"cannot" in response.data.lower()
+
+
+def test_blocked_page_returns_200(client):
+    """GET /blocked returns 200 and explains access is restricted."""
+    response = client.get("/blocked")
+    assert response.status_code == 200
+    assert b"restricted" in response.data.lower() or b"cannot" in response.data.lower()
+
+
 def test_get_logout_rejected(client):
     """GET /logout is not allowed; route is POST only."""
     response = client.get("/logout")

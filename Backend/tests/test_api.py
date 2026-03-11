@@ -138,6 +138,19 @@ def test_login_unverified_email_returns_403(client, app):
     assert "verified" in (data.get("error") or "").lower()
 
 
+def test_login_banned_user_returns_403(client, banned_user):
+    """POST /api/v1/auth/login with banned user returns 403 and Account is restricted."""
+    user, password = banned_user
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": user.username, "password": password},
+        content_type="application/json",
+    )
+    assert response.status_code == 403
+    data = response.get_json()
+    assert "restricted" in (data.get("error") or "").lower()
+
+
 def test_login_missing_body_returns_400(client):
     """POST /api/v1/auth/login without JSON returns 400."""
     response = client.post(
@@ -163,6 +176,17 @@ def test_me_with_token_returns_user(client, auth_headers, test_user):
     data = response.get_json()
     assert data["username"] == user.username
     assert data["id"] == user.id
+
+
+def test_me_banned_user_returns_403(client, app, banned_user):
+    """GET /api/v1/auth/me with valid JWT for a banned user returns 403."""
+    user, _ = banned_user
+    with app.app_context():
+        from flask_jwt_extended import create_access_token
+        token = create_access_token(identity=str(user.id))
+    response = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer " + token})
+    assert response.status_code == 403
+    assert "restricted" in (response.get_json().get("error") or "").lower()
 
 
 def test_protected_without_token_returns_401(client):

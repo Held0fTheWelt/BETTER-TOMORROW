@@ -154,3 +154,123 @@ def test_users_delete_without_token_returns_401(client, test_user):
     user, _ = test_user
     r = client.delete(f"/api/v1/users/{user.id}")
     assert r.status_code == 401
+
+
+def test_users_get_self_banned_returns_403(client, app, banned_user):
+    """GET /api/v1/users/<id> for own id when banned returns 403."""
+    user, _ = banned_user
+    with app.app_context():
+        from flask_jwt_extended import create_access_token
+        token = create_access_token(identity=str(user.id))
+    r = client.get(f"/api/v1/users/{user.id}", headers={"Authorization": "Bearer " + token})
+    assert r.status_code == 403
+    assert "restricted" in (r.get_json().get("error") or "").lower()
+
+
+def test_users_assign_role_as_admin_returns_200(client, admin_headers, test_user):
+    """PATCH /api/v1/users/<id>/role as admin with valid role returns 200."""
+    user, _ = test_user
+    r = client.patch(
+        f"/api/v1/users/{user.id}/role",
+        headers=admin_headers,
+        json={"role": "moderator"},
+        content_type="application/json",
+    )
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["role"] == "moderator"
+    assert "is_banned" in data
+
+
+def test_users_assign_role_as_non_admin_returns_403(client, auth_headers, test_user):
+    """PATCH /api/v1/users/<id>/role as non-admin returns 403."""
+    user, _ = test_user
+    r = client.patch(
+        f"/api/v1/users/{user.id}/role",
+        headers=auth_headers,
+        json={"role": "moderator"},
+        content_type="application/json",
+    )
+    assert r.status_code == 403
+    assert r.get_json().get("error") == "Forbidden"
+
+
+def test_users_assign_role_invalid_returns_400(client, admin_headers, test_user):
+    """PATCH /api/v1/users/<id>/role with invalid role returns 400."""
+    user, _ = test_user
+    r = client.patch(
+        f"/api/v1/users/{user.id}/role",
+        headers=admin_headers,
+        json={"role": "superuser"},
+        content_type="application/json",
+    )
+    assert r.status_code == 400
+    assert "error" in r.get_json()
+
+
+def test_users_ban_as_admin_returns_200(client, admin_headers, test_user):
+    """POST /api/v1/users/<id>/ban as admin returns 200 and user is_banned true."""
+    user, _ = test_user
+    r = client.post(
+        f"/api/v1/users/{user.id}/ban",
+        headers=admin_headers,
+        json={"reason": "Test ban reason"},
+        content_type="application/json",
+    )
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["is_banned"] is True
+    assert data.get("ban_reason") == "Test ban reason"
+
+
+def test_users_ban_as_non_admin_returns_403(client, auth_headers, test_user):
+    """POST /api/v1/users/<id>/ban as non-admin returns 403."""
+    user, _ = test_user
+    r = client.post(
+        f"/api/v1/users/{user.id}/ban",
+        headers=auth_headers,
+        json={"reason": "x"},
+        content_type="application/json",
+    )
+    assert r.status_code == 403
+    assert r.get_json().get("error") == "Forbidden"
+
+
+def test_users_unban_as_admin_returns_200(client, app, admin_headers, banned_user):
+    """POST /api/v1/users/<id>/unban as admin returns 200 and user is_banned false."""
+    user, _ = banned_user
+    r = client.post(f"/api/v1/users/{user.id}/unban", headers=admin_headers)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["is_banned"] is False
+
+
+def test_users_unban_as_non_admin_returns_403(client, auth_headers, banned_user):
+    """POST /api/v1/users/<id>/unban as non-admin returns 403."""
+    user, _ = banned_user
+    r = client.post(f"/api/v1/users/{user.id}/unban", headers=auth_headers)
+    assert r.status_code == 403
+    assert r.get_json().get("error") == "Forbidden"
+
+
+def test_users_list_as_admin_includes_ban_fields(client, admin_headers, banned_user):
+    """GET /api/v1/users as admin returns items with is_banned, banned_at, ban_reason."""
+    r = client.get("/api/v1/users?page=1&limit=20", headers=admin_headers)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert "items" in data and len(data["items"]) >= 1
+    user_item = next((u for u in data["items"] if u.get("username") == "banneduser"), None)
+    assert user_item is not None
+    assert "is_banned" in user_item
+    assert user_item["is_banned"] is True
+
+
+def test_users_get_as_admin_includes_ban_fields(client, admin_headers, banned_user):
+    """GET /api/v1/users/<id> as admin for another user returns is_banned, banned_at, ban_reason."""
+    user, _ = banned_user
+    r = client.get(f"/api/v1/users/{user.id}", headers=admin_headers)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data.get("is_banned") is True
+    assert "banned_at" in data
+    assert "ban_reason" in data

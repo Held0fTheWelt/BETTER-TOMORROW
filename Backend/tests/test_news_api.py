@@ -256,6 +256,25 @@ def test_news_post_with_moderator_returns_201(client, moderator_headers):
     assert "id" in data
 
 
+def test_news_post_with_admin_returns_201(client, admin_headers):
+    """POST /api/v1/news with admin JWT returns 201 and creates article."""
+    response = client.post(
+        "/api/v1/news",
+        headers=admin_headers,
+        json={
+            "title": "New by Admin",
+            "slug": "new-by-admin",
+            "content": "Content by admin.",
+        },
+        content_type="application/json",
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["title"] == "New by Admin"
+    assert data["slug"] == "new-by-admin"
+    assert "id" in data
+
+
 def test_news_put_with_moderator_returns_200(client, moderator_headers, sample_news):
     """PUT /api/v1/news/<id> with moderator JWT returns 200 and updates article."""
     pub1, _pub2, _draft = sample_news
