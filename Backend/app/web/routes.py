@@ -86,6 +86,8 @@ def login():
         session["user_id"] = user.id
         session["username"] = user.username
         session.modified = True
+        from app.services.user_service import update_user_last_seen
+        update_user_last_seen(user.id)
         flash(f"Welcome, {user.username}.", "success")
         next_url = request.args.get("next")
         if not (next_url and is_safe_redirect(next_url)):
@@ -399,6 +401,19 @@ def dashboard():
     uid = session.get("user_id")
     user = db.session.get(User, int(uid)) if uid else None
     return render_template("dashboard.html", is_admin=user.is_admin if user else False)
+
+
+@web_bp.route("/dashboard/api/metrics")
+@require_web_admin
+@limiter.limit("60 per minute")
+def dashboard_api_metrics():
+    """Real user metrics for admin dashboard. Query: range=24h|7d|30d|12m."""
+    range_key = (request.args.get("range") or "24h").strip().lower()
+    if range_key not in ("24h", "7d", "30d", "12m"):
+        range_key = "24h"
+    from app.services.metrics_service import get_metrics
+    data = get_metrics(range_key)
+    return jsonify(data)
 
 
 @web_bp.route("/dashboard/api/logs")

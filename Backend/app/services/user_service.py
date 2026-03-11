@@ -63,6 +63,35 @@ def get_user_by_email(email: str):
     ).first()
 
 
+# Throttle: update last_seen_at at most once per this many seconds (avoids write on every request).
+LAST_SEEN_THROTTLE_SECONDS = 300
+
+
+def update_user_last_seen(user_id) -> None:
+    """
+    Set user last_seen_at to now if not set or older than LAST_SEEN_THROTTLE_SECONDS.
+    Used for real active-user metrics. Call on authenticated activity (web login, API request).
+    """
+    if user_id is None:
+        return
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError):
+        return
+    user = db.session.get(User, uid)
+    if not user:
+        return
+    now = datetime.now(timezone.utc)
+    if user.last_seen_at is None:
+        user.last_seen_at = now
+        db.session.commit()
+        return
+    delta = (now - user.last_seen_at).total_seconds()
+    if delta >= LAST_SEEN_THROTTLE_SECONDS:
+        user.last_seen_at = now
+        db.session.commit()
+
+
 def get_user_by_id(user_id):
     """Return User by id or None."""
     if user_id is None:

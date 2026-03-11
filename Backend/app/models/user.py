@@ -1,4 +1,10 @@
+from datetime import datetime, timezone
+
 from app.extensions import db
+
+
+def _utc_now():
+    return datetime.now(timezone.utc)
 
 
 class User(db.Model):
@@ -16,6 +22,8 @@ class User(db.Model):
     banned_at = db.Column(db.DateTime(timezone=True), nullable=True)
     ban_reason = db.Column(db.String(512), nullable=True)
     preferred_language = db.Column(db.String(10), nullable=True)
+    last_seen_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=True, default=_utc_now)
 
     role_rel = db.relationship("Role", backref="users", lazy="joined")
 
