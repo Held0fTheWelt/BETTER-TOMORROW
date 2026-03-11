@@ -2,24 +2,42 @@
 
 All notable changes to the World of Shadows project are documented in this file.
 
----
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-### [0.0.11] – multilingual content architecture - 2026-03-11
-
-- **Phase 0 – Architecture:** Internal doc `docs/architecture/MultilingualArchitecture.md` defines supported languages (de, en), default (de), fallback order, translation statuses, role expectations, backend–n8n event contract, and public vs editorial routes.
-- **Phase 1 – Backend language foundation:** User model has `preferred_language`. Config adds `SUPPORTED_LANGUAGES` and `DEFAULT_LANGUAGE`. New `app/i18n.py` for language validation and translation status constants. News replaced with language-neutral `news_articles` plus `news_article_translations` (title, slug, summary, content, translation_status, etc.). Wiki replaced with `wiki_pages` plus `wiki_page_translations` (key, slug, content_markdown, translation_status). Migrations: 010 preferred_language, 011 news_articles + data migration from `news` and drop `news`, 012 wiki_pages + seed from `content/wiki.md`. Public news API supports `?lang=` and detail by id or slug; list/detail return effective translation with fallback. Backend `/wiki` renders from DB (default page) with file fallback. All 141 backend tests pass.
-- **Phase 2 – Backend API expansion:** `GET /api/v1/auth/me` exposes `preferred_language`. New: `GET /api/v1/languages` (supported + default), `PUT /api/v1/users/<id>/preferences` (preferred_language). User update accepts `preferred_language` with validation. Public news: `GET /api/v1/news?lang=`, `GET /api/v1/news/<id_or_slug>?lang=`. Editorial news: `GET/PUT /api/v1/news/<id>/translations`, `GET/PUT .../translations/<lang>`, `POST .../submit-review`, `.../approve`, `.../publish`, `POST .../translations/auto-translate`. Public wiki: `GET /api/v1/wiki/<slug>?lang=`. Wiki admin: `GET/POST/PUT /api/v1/wiki-admin/pages`, `GET/PUT .../pages/<id>/translations/<lang>`, `POST .../submit-review`, `.../approve`, `.../publish`, `POST .../translations/auto-translate`. Legacy `GET/PUT /api/v1/wiki` (file) unchanged for backward compat.
-- **Phase 3 – Frontend UI i18n:** Translation files `Frontend/translations/de.json` and `en.json` for UI strings. Language resolution: query `?lang=` → session → Accept-Language → default `de`. Context processor injects `current_lang`, `t` (translations), and `frontend_config.currentLanguage` for JS. Public base template: nav, footer, skip-link, and language switcher (DE/EN) use `t.*`. News list and detail pass `lang` to API; news template uses `t` for loading, empty, buttons, pagination. New public wiki route `/wiki` and `/wiki/<slug>`; template `wiki_public.html` fetches `GET /api/v1/wiki/<slug>?lang=` and renders HTML. Manage base and login use `t` for nav and form labels.
-- **Phase 4 – Multilingual News editorial frontend:** Manage news list shows DE/EN translation status columns (badges: published, approved, review_required, machine_draft, outdated, missing). Filters: search, category, status (All/Published/Draft), language (All/DE/EN), sort, direction. List API returns `translation_statuses` and `default_language` when `include_drafts=1`. Editor: shared section (category, cover image); language tabs (DE/EN) with per-translation title, slug, summary, content; translation status display; Save (base + current translation), Request review, Approve, Publish translation, Publish article, Unpublish, Auto-translate, Delete with confirmation. New article creates default-language translation; edit loads article and translations, fetches translation content on tab switch. All actions use real backend APIs.
-- **Phase 5 – Multilingual Wiki editorial frontend:** Manage wiki shows page list (GET wiki-admin/pages), New page (POST), select page loads translations (GET wiki-admin/pages/<id>/translations). Language tabs DE/EN; markdown editor + preview per translation; translation status badges. Save (PUT wiki-admin/pages/<id>/translations/<lang>), Request review, Approve, Publish translation, Auto-translate. Compatible with public wiki rendering (GET /api/v1/wiki/<slug>?lang=).
-- **Phase 6 – User administration and preferred_language:** Manage users table shows Lang column (preferred_language). Edit form includes Preferred language (— default — / de / en). Save sends preferred_language via PUT /api/v1/users/<id>. No password or hash fields; ban/unban/delete unchanged.
-- **Phase 7 – n8n integration:** Backend config: `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `N8N_SERVICE_TOKEN`. On auto-translate (news/wiki), backend POSTs signed webhook events `news.translation.requested` and `wiki.translation.requested` (article_id/page_id, target_language, source_language). n8n can read/write translations via `X-Service-Key`; GET/PUT news and wiki translation endpoints accept editor JWT or service token; service writes are forced to `machine_draft`. `app/n8n_trigger.py` for signing and sending webhooks; `require_editor_or_n8n_service` in auth for translation routes. Setup and event contract documented in `docs/n8n/README.md` (env, webhook verification, idempotency).
-- **Phase 8 – Robustness and audit:** Language codes validated via `normalize_language` in routes and services. Roles enforced by `require_jwt_*` / `require_editor_or_n8n_service`. Translation upserts are one row per entity+language (no duplicates). Audit log (`log_activity`) for news and wiki translation actions: submit-review, approve, publish. n8n service auth and idempotent retries as in Phase 7.
-- **Phase 9 – Verification:** Backend test suite (141 tests) passes. Manual checks: UI de/en, News/Wiki public and editorial, User admin with preferred_language, no password fields. n8n: use docs/n8n/README.md for webhook auth and service token; retries are idempotent.
 
 ---
 
-### [0.0.10] – editorial/admin frontend - 2026-03-11
+## [0.0.11] - 2026-03-11
+
+### Added
+
+- **Documentation:** `docs/architecture/MultilingualArchitecture.md` – supported languages (de, en), default and fallback, translation statuses, roles, backend–n8n contract, public vs editorial routes.
+- **User:** Field `preferred_language` (migration 010). Config `SUPPORTED_LANGUAGES`, `DEFAULT_LANGUAGE`. Module `app/i18n.py` for language validation and status constants.
+- **News (new model):** Tables `news_articles` and `news_article_translations` (title, slug, summary, content, translation_status, etc.). Migration 011 with data migration from `news`, then drop of `news`. Public list/detail support `?lang=` and fallback; detail by id or slug.
+- **Wiki (new model):** Tables `wiki_pages` and `wiki_page_translations` (key, slug, content_markdown, translation_status). Migration 012; seed from `Backend/content/wiki.md`. Backend `/wiki` serves from DB with file fallback. Public `GET /api/v1/wiki/<slug>?lang=`.
+- **API – auth/users:** `GET /api/v1/auth/me` and user update expose `preferred_language`. `GET /api/v1/languages` (supported + default), `PUT /api/v1/users/<id>/preferences` (preferred_language). User update validates preferred_language.
+- **API – news editorial:** `GET/PUT /api/v1/news/<id>/translations`, `GET/PUT .../translations/<lang>`, `POST .../submit-review`, `.../approve`, `.../publish`, `POST .../translations/auto-translate`. List with `include_drafts=1` returns `translation_statuses` and `default_language` per article.
+- **API – wiki editorial:** `GET/POST/PUT /api/v1/wiki-admin/pages`, `GET/PUT .../pages/<id>/translations/<lang>`, `POST .../submit-review`, `.../approve`, `.../publish`, `POST .../translations/auto-translate`. Legacy `GET/PUT /api/v1/wiki` (file) unchanged.
+- **n8n:** Config `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `N8N_SERVICE_TOKEN`. On auto-translate (News/Wiki), backend POSTs webhook events `news.translation.requested` / `wiki.translation.requested` (article_id/page_id, target_language, source_language). Optional HMAC-SHA256 in `X-Webhook-Signature`. `app/n8n_trigger.py` for signing and sending.
+- **n8n service auth:** Header `X-Service-Key` accepted on GET/PUT for news and wiki translations (alongside JWT). Service writes forced to `machine_draft`. Decorator `require_editor_or_n8n_service`. `docs/n8n/README.md` for setup, payloads, signature, idempotency.
+- **Audit:** `log_activity` for translation actions submit-review, approve, publish (news and wiki).
+- **Frontend – UI i18n:** `Frontend/translations/de.json` and `en.json`. Language resolution: `?lang=` → session → Accept-Language → default `de`. Context: `current_lang`, `t`, `frontend_config.currentLanguage`. Base template: nav, footer, skip-link, language switcher (DE/EN). News/wiki and manage use `t` for labels.
+- **Frontend – public wiki:** Routes `/wiki` and `/wiki/<slug>`. Template `wiki_public.html` fetches `GET /api/v1/wiki/<slug>?lang=` and renders content.
+- **Frontend – manage news (multilingual):** List with DE/EN status columns (badges); filters search, category, status, language, sort, direction. Editor: shared category/cover; language tabs (DE/EN) with title, slug, summary, content; Save, Request review, Approve, Publish translation, Publish article, Unpublish, Auto-translate, Delete. New article creates default-language translation.
+- **Frontend – manage wiki (multilingual):** Page list, New page, select page loads translations. Language tabs DE/EN with markdown editor and preview; Save, Request review, Approve, Publish translation, Auto-translate.
+- **Frontend – user admin:** Users table column Lang (`preferred_language`). Edit form: Preferred language (— default — / de / en); save via PUT. No password or hash fields.
+
+### Changed
+
+- **News:** Replaced single `news` table with `news_articles` + `news_article_translations`; public API uses `?lang=` and fallback.
+- **Wiki:** Content from DB (`wiki_pages` + `wiki_page_translations`) with file fallback; public wiki API by slug and language.
+- **Validation:** Language codes validated via `normalize_language` in routes and services; translation upserts one row per entity+language (no duplicates).
+
+---
+
+## [0.0.10] - 2026-03-11
+
+### Added
 
 - **Management area (Frontend):** Protected editorial and admin area at `/manage` (login at `/manage/login`). JWT-based auth: login form calls backend `POST /api/v1/auth/login`; token stored in `sessionStorage`; central `ManageAuth.apiFetchWithAuth()` attaches `Authorization: Bearer <token>` and redirects to login on 401. Current user bootstrapped via `GET /api/v1/auth/me`; username and role shown in header; logout clears token. Role-based nav: Users link visible only to admin.
 - **News management UI:** `/manage/news` – list with pagination, search, category and published/draft filters, sort; row selection; create/edit form (title, slug, summary, content, category, cover_image, is_published); publish, unpublish, delete with confirmation; uses existing news API (list with `include_drafts=1` for staff, get/create/update/delete/publish/unpublish).
