@@ -15,6 +15,7 @@ class User(db.Model):
     is_banned = db.Column(db.Boolean(), nullable=False, default=False)
     banned_at = db.Column(db.DateTime(timezone=True), nullable=True)
     ban_reason = db.Column(db.String(512), nullable=True)
+    preferred_language = db.Column(db.String(10), nullable=True)
 
     role_rel = db.relationship("Role", backref="users", lazy="joined")
 
@@ -48,6 +49,8 @@ class User(db.Model):
 
     def to_dict(self, include_email: bool = False, include_ban: bool = False):
         out = {"id": self.id, "username": self.username, "role": self.role}
+        if self.preferred_language is not None:
+            out["preferred_language"] = self.preferred_language
         if include_email:
             out["email"] = self.email
         if include_ban:

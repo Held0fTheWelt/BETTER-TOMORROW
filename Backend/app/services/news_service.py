@@ -1,10 +1,19 @@
-"""News service: list, get, create, update, delete, publish. Filtering/sorting/pagination here."""
+"""News service: list, get, create, update, delete, publish. Uses NewsArticle + NewsArticleTranslation with language fallback."""
 import logging
 import re
 from datetime import datetime, timezone
 
+from flask import current_app
+from sqlalchemy import or_
+
 from app.extensions import db
-from app.models import News
+from app.i18n import (
+    get_default_language,
+    is_supported_language,
+    normalize_language,
+    TRANSLATION_STATUS_PUBLISHED,
+)
+from app.models import NewsArticle, NewsArticleTranslation
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +33,6 @@ def _utc_now():
 
 
 def _normalize_slug(slug: str) -> str | None:
-    """Normalize slug: lowercase, strip, collapse spaces to single hyphen. None if invalid."""
     if not slug or not isinstance(slug, str):
         return None
     s = slug.strip().lower()
@@ -33,11 +41,75 @@ def _normalize_slug(slug: str) -> str | None:
     return s if s else None
 
 
-def _slug_exists(slug: str, exclude_id: int | None = None) -> bool:
-    q = News.query.filter(db.func.lower(News.slug) == slug.lower())
-    if exclude_id is not None:
-        q = q.filter(News.id != exclude_id)
+def _slug_exists_for_lang(slug: str, language_code: str, exclude_article_id: int | None = None) -> bool:
+    q = NewsArticleTranslation.query.filter(
+        db.func.lower(NewsArticleTranslation.slug) == slug.lower(),
+        NewsArticleTranslation.language_code == language_code,
+    )
+    if exclude_article_id is not None:
+        q = q.filter(NewsArticleTranslation.article_id != exclude_article_id)
     return q.first() is not None
+
+
+def _effective_language(article: NewsArticle, requested_lang: str | None) -> str:
+    """Return the language code to use for this article: requested -> article default -> config default."""
+    default = get_default_language()
+    if requested_lang and is_supported_language(requested_lang):
+        return requested_lang.strip().lower()
+    if article.default_language and is_supported_language(article.default_language):
+        return article.default_language.strip().lower()
+    return default
+
+
+def _get_translation_for_lang(article_id: int, language_code: str) -> NewsArticleTranslation | None:
+    return NewsArticleTranslation.query.filter_by(
+        article_id=article_id,
+        language_code=language_code,
+    ).first()
+
+
+def _get_effective_translation(article: NewsArticle, lang: str | None) -> NewsArticleTranslation | None:
+    """Return translation for article using fallback: lang -> article.default_language -> default."""
+    lang = lang and normalize_language(lang) or article.default_language or get_default_language()
+    t = _get_translation_for_lang(article.id, lang)
+    if t:
+        return t
+    default_lang = article.default_language or get_default_language()
+    if default_lang != lang:
+        t = _get_translation_for_lang(article.id, default_lang)
+        if t:
+            return t
+    fallback = get_default_language()
+    if fallback != lang and fallback != default_lang:
+        return _get_translation_for_lang(article.id, fallback)
+    return NewsArticleTranslation.query.filter_by(article_id=article.id).first()
+
+
+def _article_to_public_dict(article: NewsArticle, translation: NewsArticleTranslation | None) -> dict | None:
+    """Build public API dict from article + effective translation. Returns None if no translation."""
+    if not translation:
+        return None
+    out = {
+        "id": article.id,
+        "title": translation.title,
+        "slug": translation.slug,
+        "summary": translation.summary,
+        "content": translation.content,
+        "is_published": article.status == "published",
+        "published_at": article.published_at.isoformat() if article.published_at else None,
+        "created_at": article.created_at.isoformat() if article.created_at else None,
+        "updated_at": article.updated_at.isoformat() if article.updated_at else None,
+        "cover_image": article.cover_image,
+        "category": article.category,
+        "language_code": translation.language_code,
+    }
+    if article.author_id is not None:
+        out["author_id"] = article.author_id
+        out["author_name"] = article.author.username if article.author else None
+    else:
+        out["author_id"] = None
+        out["author_name"] = None
+    return out
 
 
 def list_news(
@@ -49,30 +121,39 @@ def list_news(
     page: int = 1,
     per_page: int = 20,
     category: str | None = None,
+    lang: str | None = None,
 ):
-    """
-    List news with optional filtering, search, sort, and pagination.
-    Returns (query_result_list, total_count).
-    """
-    q = News.query
+    """List news articles. Returns (list of dicts for API, total_count). Each dict is article + effective translation for lang."""
+    q = NewsArticle.query
     if published_only:
-        q = q.filter(News.is_published == True)
+        q = q.filter(NewsArticle.status == "published")
         q = q.filter(
-            (News.published_at == None) | (News.published_at <= _utc_now())
-        )
-    if search and search.strip():
-        term = f"%{search.strip()}%"
-        q = q.filter(
-            db.or_(
-                News.title.ilike(term),
-                News.summary.ilike(term),
-                News.content.ilike(term),
-            )
+            (NewsArticle.published_at == None) | (NewsArticle.published_at <= _utc_now())
         )
     if category and category.strip():
-        q = q.filter(db.func.lower(News.category) == category.strip().lower())
+        q = q.filter(db.func.lower(NewsArticle.category) == category.strip().lower())
 
-    sort_col = getattr(News, sort, None) if sort in SORT_FIELDS else News.created_at
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        q = q.join(NewsArticleTranslation).filter(
+            or_(
+                NewsArticleTranslation.title.ilike(term),
+                NewsArticleTranslation.summary.ilike(term),
+                NewsArticleTranslation.content.ilike(term),
+            )
+        ).distinct()
+
+    if sort == "title":
+        q = q.outerjoin(
+            NewsArticleTranslation,
+            (NewsArticle.id == NewsArticleTranslation.article_id)
+            & (NewsArticleTranslation.language_code == NewsArticle.default_language),
+        ).distinct()
+        sort_col = NewsArticleTranslation.title
+    else:
+        sort_col = getattr(NewsArticle, sort, None) if sort in SORT_FIELDS else NewsArticle.created_at
+    if sort_col is None:
+        sort_col = NewsArticle.created_at
     if order == "asc":
         q = q.order_by(sort_col.asc())
     else:
@@ -81,22 +162,62 @@ def list_news(
     total = q.count()
     offset = max(0, (page - 1) * per_page)
     per_page = max(1, min(per_page, 100))
-    items = q.offset(offset).limit(per_page).all()
+    articles = q.offset(offset).limit(per_page).all()
+
+    default_lang = get_default_language()
+    items = []
+    for article in articles:
+        trans = _get_effective_translation(article, lang)
+        if not trans:
+            continue
+        if published_only and (article.status != "published" or trans.translation_status != TRANSLATION_STATUS_PUBLISHED):
+            continue
+        d = _article_to_public_dict(article, trans)
+        if d:
+            items.append(d)
+
     return items, total
 
 
-def get_news_by_id(news_id: int):
-    """Return News by id or None."""
+def get_news_by_id(news_id: int, lang: str | None = None):
+    """Return public dict for article by id or None. For published-only callers, only published articles."""
     if news_id is None:
         return None
-    return db.session.get(News, news_id)
+    article = db.session.get(NewsArticle, news_id)
+    if not article:
+        return None
+    trans = _get_effective_translation(article, lang)
+    if not trans:
+        return None
+    return _article_to_public_dict(article, trans)
 
 
-def get_news_by_slug(slug: str):
-    """Return News by slug (case-insensitive) or None."""
+def get_news_article_by_id(article_id: int):
+    """Return NewsArticle by id or None (for editorial use)."""
+    if article_id is None:
+        return None
+    return db.session.get(NewsArticle, article_id)
+
+
+def get_news_by_slug(slug: str, lang: str | None = None):
+    """Return public dict for article by slug in given language (with fallback) or None."""
     if not slug or not isinstance(slug, str):
         return None
-    return News.query.filter(db.func.lower(News.slug) == slug.strip().lower()).first()
+    slug_norm = slug.strip().lower()
+    default_lang = get_default_language()
+    for try_lang in [normalize_language(lang) or default_lang, default_lang]:
+        if not try_lang:
+            continue
+        trans = NewsArticleTranslation.query.filter(
+            db.func.lower(NewsArticleTranslation.slug) == slug_norm,
+            NewsArticleTranslation.language_code == try_lang,
+            NewsArticleTranslation.translation_status == TRANSLATION_STATUS_PUBLISHED,
+        ).first()
+        if trans:
+            article = db.session.get(NewsArticle, trans.article_id)
+            if article and article.status == "published":
+                return _article_to_public_dict(article, trans)
+    return None
 
 
 def create_news(
@@ -109,11 +230,10 @@ def create_news(
     is_published: bool = False,
     cover_image: str | None = None,
     category: str | None = None,
+    default_language: str | None = None,
 ):
-    """
-    Create a news article. Returns (News, None) or (None, error_message).
-    Slug is normalized and must be unique.
-    """
+    """Create a news article with one translation in default_language. Returns (NewsArticle, None) or (None, error_message)."""
+    default_lang = normalize_language(default_language) or get_default_language()
     title = (title or "").strip()
     if not title:
         return None, "Title is required"
@@ -122,15 +242,13 @@ def create_news(
     content = (content or "").strip()
     if not content:
         return None, "Content is required"
-
     slug_norm = _normalize_slug(slug) if slug else None
     if not slug_norm:
         return None, "Slug is required and must be alphanumeric with hyphens"
     if len(slug_norm) > SLUG_MAX_LENGTH:
         return None, f"Slug must be at most {SLUG_MAX_LENGTH} characters"
-    if _slug_exists(slug_norm):
+    if _slug_exists_for_lang(slug_norm, default_lang):
         return None, "Slug already in use"
-
     if summary is not None and len((summary or "")) > SUMMARY_MAX_LENGTH:
         return None, f"Summary must be at most {SUMMARY_MAX_LENGTH} characters"
     if category and len(category) > CATEGORY_MAX_LENGTH:
@@ -139,23 +257,36 @@ def create_news(
         return None, f"Cover image URL must be at most {COVER_IMAGE_MAX_LENGTH} characters"
 
     now = _utc_now()
-    news = News(
+    status = "published" if is_published else "draft"
+    article = NewsArticle(
+        author_id=author_id,
+        status=status,
+        default_language=default_lang,
+        category=(category or "").strip() or None,
+        cover_image=(cover_image or "").strip() or None,
+        created_at=now,
+        updated_at=now,
+        published_at=now if is_published else None,
+    )
+    db.session.add(article)
+    db.session.flush()
+
+    trans_status = TRANSLATION_STATUS_PUBLISHED if is_published else "approved"
+    trans = NewsArticleTranslation(
+        article_id=article.id,
+        language_code=default_lang,
         title=title,
         slug=slug_norm,
         summary=(summary or "").strip() or None,
         content=content,
-        author_id=author_id,
-        is_published=bool(is_published),
-        published_at=now if is_published else None,
-        created_at=now,
-        updated_at=now,
-        cover_image=(cover_image or "").strip() or None,
-        category=(category or "").strip() or None,
+        translation_status=trans_status,
+        source_language=default_lang,
+        translated_at=now,
     )
-    db.session.add(news)
+    db.session.add(trans)
     db.session.commit()
-    logger.info("News created: id=%s slug=%r", news.id, news.slug)
-    return news, None
+    logger.info("News article created: id=%s slug=%r", article.id, slug_norm)
+    return article, None
 
 
 def update_news(
@@ -167,14 +298,17 @@ def update_news(
     content: str | None = None,
     cover_image: str | None = None,
     category: str | None = None,
+    default_language: str | None = None,
 ):
-    """
-    Update a news article. Returns (News, None) or (None, error_message).
-    Only provided fields are updated.
-    """
-    news = get_news_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
-    if not news:
+    """Update base article and its default-language translation. Returns (NewsArticle, None) or (None, error_message)."""
+    article = get_news_article_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
+    if not article:
         return None, "News not found"
+
+    default_lang = article.default_language or get_default_language()
+    trans = _get_translation_for_lang(article.id, default_lang)
+    if not trans:
+        return None, "Default translation not found"
 
     if title is not None:
         t = title.strip()
@@ -182,70 +316,75 @@ def update_news(
             return None, "Title cannot be empty"
         if len(t) > TITLE_MAX_LENGTH:
             return None, f"Title must be at most {TITLE_MAX_LENGTH} characters"
-        news.title = t
+        trans.title = t
     if slug is not None:
         slug_norm = _normalize_slug(slug)
         if not slug_norm:
             return None, "Slug must be alphanumeric with hyphens"
         if len(slug_norm) > SLUG_MAX_LENGTH:
             return None, f"Slug must be at most {SLUG_MAX_LENGTH} characters"
-        if _slug_exists(slug_norm, exclude_id=news.id):
+        if _slug_exists_for_lang(slug_norm, default_lang, exclude_article_id=article.id):
             return None, "Slug already in use"
-        news.slug = slug_norm
+        trans.slug = slug_norm
     if summary is not None:
         s = (summary or "").strip() or None
         if s and len(s) > SUMMARY_MAX_LENGTH:
             return None, f"Summary must be at most {SUMMARY_MAX_LENGTH} characters"
-        news.summary = s
+        trans.summary = s
     if content is not None:
         c = content.strip()
         if not c:
             return None, "Content cannot be empty"
-        news.content = c
+        trans.content = c
     if cover_image is not None:
-        news.cover_image = (cover_image or "").strip() or None
-        if news.cover_image and len(news.cover_image) > COVER_IMAGE_MAX_LENGTH:
+        article.cover_image = (cover_image or "").strip() or None
+        if article.cover_image and len(article.cover_image) > COVER_IMAGE_MAX_LENGTH:
             return None, f"Cover image URL must be at most {COVER_IMAGE_MAX_LENGTH} characters"
     if category is not None:
-        news.category = (category or "").strip() or None
-        if news.category and len(news.category) > CATEGORY_MAX_LENGTH:
+        article.category = (category or "").strip() or None
+        if article.category and len(article.category) > CATEGORY_MAX_LENGTH:
             return None, f"Category must be at most {CATEGORY_MAX_LENGTH} characters"
+    if default_language is not None:
+        lang_norm = normalize_language(default_language)
+        if lang_norm:
+            article.default_language = lang_norm
 
+    article.updated_at = _utc_now()
     db.session.commit()
-    logger.info("News updated: id=%s", news.id)
-    return news, None
+    logger.info("News article updated: id=%s", article.id)
+    return article, None
 
 
 def delete_news(news_or_id):
-    """Delete a news article. Returns (True, None) or (False, error_message)."""
-    news = get_news_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
-    if not news:
+    """Delete a news article (and its translations). Returns (True, None) or (False, error_message)."""
+    article = get_news_article_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
+    if not article:
         return False, "News not found"
-    db.session.delete(news)
+    db.session.delete(article)
     db.session.commit()
-    logger.info("News deleted: id=%s slug=%r", news.id, news.slug)
+    logger.info("News article deleted: id=%s", article.id)
     return True, None
 
 
 def publish_news(news_or_id):
-    """Set is_published=True and published_at=now. Returns (News, None) or (None, error_message)."""
-    news = get_news_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
-    if not news:
+    """Set article status to published and published_at=now. Returns (NewsArticle, None) or (None, error_message)."""
+    article = get_news_article_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
+    if not article:
         return None, "News not found"
-    news.is_published = True
-    if not news.published_at:
-        news.published_at = _utc_now()
+    article.status = "published"
+    if not article.published_at:
+        article.published_at = _utc_now()
     db.session.commit()
-    logger.info("News published: id=%s", news.id)
-    return news, None
+    logger.info("News article published: id=%s", article.id)
+    return article, None
 
 
 def unpublish_news(news_or_id):
-    """Set is_published=False. published_at is left as-is. Returns (News, None) or (None, error_message)."""
-    news = get_news_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
-    if not news:
+    """Set article status to draft. Returns (NewsArticle, None) or (None, error_message)."""
+    article = get_news_article_by_id(news_or_id) if isinstance(news_or_id, int) else news_or_id
+    if not article:
         return None, "News not found"
-    news.is_published = False
+    article.status = "draft"
     db.session.commit()
-    logger.info("News unpublished: id=%s", news.id)
-    return news, None
+    logger.info("News article unpublished: id=%s", article.id)
+    return article, None

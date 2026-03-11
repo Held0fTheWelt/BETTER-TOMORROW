@@ -192,54 +192,86 @@ def banned_user(app):
 @pytest.fixture
 def sample_news(app, test_user):
     """Create sample published and draft news for list/detail/search/sort tests.
-    Returns (published_news, published_news_2, draft_news) – two published (different title/sort), one draft."""
-    from app.models import News
+    Returns (published_article_1, published_article_2, draft_article) – two published, one draft."""
+    from app.models import NewsArticle, NewsArticleTranslation
     from datetime import datetime, timezone
 
     with app.app_context():
         user, _ = test_user
         now = datetime.now(timezone.utc)
-        pub1 = News(
+        pub1_article = NewsArticle(
+            author_id=user.id,
+            status="published",
+            default_language="de",
+            category="Updates",
+            created_at=now,
+            updated_at=now,
+            published_at=now,
+        )
+        db.session.add(pub1_article)
+        db.session.flush()
+        pub1 = NewsArticleTranslation(
+            article_id=pub1_article.id,
+            language_code="de",
             title="Published Article",
             slug="published-article",
             summary="A published summary",
             content="Published body with unique word searchable.",
+            translation_status="published",
+            source_language="de",
+            translated_at=now,
+        )
+        db.session.add(pub1)
+
+        pub2_article = NewsArticle(
             author_id=user.id,
-            is_published=True,
-            published_at=now,
+            status="published",
+            default_language="de",
+            category="Updates",
             created_at=now,
             updated_at=now,
-            category="Updates",
+            published_at=now,
         )
-        pub2 = News(
+        db.session.add(pub2_article)
+        db.session.flush()
+        pub2 = NewsArticleTranslation(
+            article_id=pub2_article.id,
+            language_code="de",
             title="Another Published",
             slug="another-published",
             summary="Second published.",
             content="Second body.",
+            translation_status="published",
+            source_language="de",
+            translated_at=now,
+        )
+        db.session.add(pub2)
+
+        draft_article = NewsArticle(
             author_id=user.id,
-            is_published=True,
-            published_at=now,
+            status="draft",
+            default_language="de",
+            category="Drafts",
             created_at=now,
             updated_at=now,
-            category="Updates",
+            published_at=None,
         )
-        draft = News(
+        db.session.add(draft_article)
+        db.session.flush()
+        draft = NewsArticleTranslation(
+            article_id=draft_article.id,
+            language_code="de",
             title="Draft Article",
             slug="draft-article",
             summary="Draft summary",
             content="Draft body.",
-            author_id=user.id,
-            is_published=False,
-            published_at=None,
-            created_at=now,
-            updated_at=now,
-            category="Drafts",
+            translation_status="approved",
+            source_language="de",
+            translated_at=now,
         )
-        db.session.add(pub1)
-        db.session.add(pub2)
         db.session.add(draft)
         db.session.commit()
-        db.session.refresh(pub1)
-        db.session.refresh(pub2)
-        db.session.refresh(draft)
-        return pub1, pub2, draft
+        db.session.refresh(pub1_article)
+        db.session.refresh(pub2_article)
+        db.session.refresh(draft_article)
+        return pub1_article, pub2_article, draft_article

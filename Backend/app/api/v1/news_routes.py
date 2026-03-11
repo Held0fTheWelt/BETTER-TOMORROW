@@ -30,6 +30,7 @@ from app.services.news_service import (
     create_news,
     delete_news,
     get_news_by_id,
+    get_news_article_by_id,
     list_news,
     publish_news,
     unpublish_news,
@@ -78,7 +79,7 @@ def _request_wants_include_drafts():
 def news_list():
     """
     List news. By default only published. With JWT (moderator/admin) and published_only=0 or include_drafts=1, includes drafts.
-    Query params: q (search), sort, direction, page, limit, category, published_only (0 to include drafts).
+    Query params: q (search), sort, direction, page, limit, category, lang, published_only (0 to include drafts).
     Response: { "items": [...], "total": N, "page": P, "per_page": L }.
     """
     q = request.args.get("q", "").strip() or None
@@ -91,6 +92,7 @@ def news_list():
     page = _parse_int(request.args.get("page"), 1, min_val=1)
     limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
     category = request.args.get("category", "").strip() or None
+    lang = request.args.get("lang", "").strip() or None
     published_only = not _request_wants_include_drafts()
 
     items, total = list_news(
@@ -101,44 +103,52 @@ def news_list():
         page=page,
         per_page=limit,
         category=category,
+        lang=lang,
     )
     return jsonify({
-        "items": [n.to_dict() for n in items],
+        "items": items,
         "total": total,
         "page": page,
         "per_page": limit,
     }), 200
 
 
-@api_v1_bp.route("/news/<int:news_id>", methods=["GET"])
+@api_v1_bp.route("/news/<id_or_slug>", methods=["GET"])
 @limiter.limit("60 per minute")
 @jwt_required(optional=True)
-def news_detail(news_id):
+def news_detail(id_or_slug):
     """
-    Get a single news article by id. Public: only published articles; 404 for draft.
-    With JWT (moderator/admin): returns article even if draft (so they can view/edit).
-    Response: single news object (id, title, slug, summary, content, author_id, author_name, ...).
+    Get a single news article by id (integer) or slug (string). Public: only published; 404 for draft.
+    With JWT (moderator/admin): returns article even if draft. Query: lang for language.
+    Response: single news object (id, title, slug, summary, content, author_id, author_name, language_code, ...).
     """
-    news = get_news_by_id(news_id)
+    lang = request.args.get("lang", "").strip() or None
+    news = None
+    if id_or_slug.isdigit():
+        news = get_news_by_id(int(id_or_slug), lang=lang)
+    else:
+        news = get_news_by_slug(id_or_slug, lang=lang)
     if not news:
         return jsonify({"error": "Not found"}), 404
-    # Moderator/admin can read drafts
-    if not news.is_published:
+    if not news.get("is_published"):
         try:
-            from flask_jwt_extended import get_jwt_identity
             if get_jwt_identity() is not None and current_user_can_write_news():
-                return jsonify(news.to_dict()), 200
+                return jsonify(news), 200
         except Exception:
             pass
         return jsonify({"error": "Not found"}), 404
     now = datetime.now(timezone.utc)
-    if news.published_at is not None:
-        pub_at = news.published_at
-        if pub_at.tzinfo is None:
-            pub_at = pub_at.replace(tzinfo=timezone.utc)
-        if pub_at > now:
-            return jsonify({"error": "Not found"}), 404
-    return jsonify(news.to_dict()), 200
+    pub_at = news.get("published_at")
+    if pub_at:
+        try:
+            dt = datetime.fromisoformat(pub_at.replace("Z", "+00:00")) if isinstance(pub_at, str) else pub_at
+            if hasattr(dt, "tzinfo") and dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            if dt > now:
+                return jsonify({"error": "Not found"}), 404
+        except (ValueError, TypeError):
+            pass
+    return jsonify(news), 200
 
 
 # --- Protected write endpoints (JWT required) ---
@@ -175,7 +185,7 @@ def news_create():
     if category is not None:
         category = (category or "").strip() or None
 
-    news, err = create_news(
+    article, err = create_news(
         title=title,
         slug=slug,
         content=content,
@@ -193,19 +203,20 @@ def news_create():
         category="news",
         action="news_created",
         status="success",
-        message=f"News created: {news.slug}",
+        message=f"News created: {article.id}",
         route=request.path,
         method=request.method,
         target_type="news",
-        target_id=str(news.id),
+        target_id=str(article.id),
     )
-    return jsonify(news.to_dict()), 201
+    out = get_news_by_id(article.id, lang=article.default_language)
+    return jsonify(out), 201
 
 
-@api_v1_bp.route("/news/<int:news_id>", methods=["PUT"])
+@api_v1_bp.route("/news/<int:article_id>", methods=["PUT"])
 @limiter.limit("30 per minute")
 @require_jwt_moderator_or_admin
-def news_update(news_id):
+def news_update(article_id):
     """
     Update a news article. Requires JWT and moderator/admin role. Body: optional title, slug, summary, content, cover_image, category.
     """
@@ -226,7 +237,7 @@ def news_update(news_id):
     if "category" in data:
         kwargs["category"] = (data.get("category") or "").strip() or None
 
-    news, err = update_news(news_id, **kwargs)
+    article, err = update_news(article_id, **kwargs)
     if err:
         status = 409 if err == "Slug already in use" else (404 if err == "News not found" else 400)
         return jsonify({"error": err}), status
@@ -235,21 +246,22 @@ def news_update(news_id):
         category="news",
         action="news_updated",
         status="success",
-        message=f"News updated: {news.slug}",
+        message=f"News updated: {article.id}",
         route=request.path,
         method=request.method,
         target_type="news",
-        target_id=str(news.id),
+        target_id=str(article.id),
     )
-    return jsonify(news.to_dict()), 200
+    out = get_news_by_id(article.id, lang=article.default_language)
+    return jsonify(out), 200
 
 
-@api_v1_bp.route("/news/<int:news_id>", methods=["DELETE"])
+@api_v1_bp.route("/news/<int:article_id>", methods=["DELETE"])
 @limiter.limit("30 per minute")
 @require_jwt_moderator_or_admin
-def news_delete(news_id):
+def news_delete(article_id):
     """Delete a news article. Requires JWT and moderator/admin role."""
-    ok, err = delete_news(news_id)
+    ok, err = delete_news(article_id)
     if err:
         return jsonify({"error": err}), 404
     log_activity(
@@ -257,21 +269,21 @@ def news_delete(news_id):
         category="news",
         action="news_deleted",
         status="success",
-        message=f"News deleted: id={news_id}",
+        message=f"News deleted: id={article_id}",
         route=request.path,
         method=request.method,
         target_type="news",
-        target_id=str(news_id),
+        target_id=str(article_id),
     )
     return jsonify({"message": "Deleted"}), 200
 
 
-@api_v1_bp.route("/news/<int:news_id>/publish", methods=["POST"])
+@api_v1_bp.route("/news/<int:article_id>/publish", methods=["POST"])
 @limiter.limit("30 per minute")
 @require_jwt_moderator_or_admin
-def news_publish(news_id):
+def news_publish(article_id):
     """Set article as published. Requires JWT and moderator/admin role."""
-    news, err = publish_news(news_id)
+    article, err = publish_news(article_id)
     if err:
         return jsonify({"error": err}), 404
     log_activity(
@@ -279,21 +291,22 @@ def news_publish(news_id):
         category="news",
         action="news_published",
         status="success",
-        message=f"News published: {news.slug}",
+        message=f"News published: {article.id}",
         route=request.path,
         method=request.method,
         target_type="news",
-        target_id=str(news.id),
+        target_id=str(article.id),
     )
-    return jsonify(news.to_dict()), 200
+    out = get_news_by_id(article.id, lang=article.default_language)
+    return jsonify(out), 200
 
 
-@api_v1_bp.route("/news/<int:news_id>/unpublish", methods=["POST"])
+@api_v1_bp.route("/news/<int:article_id>/unpublish", methods=["POST"])
 @limiter.limit("30 per minute")
 @require_jwt_moderator_or_admin
-def news_unpublish(news_id):
+def news_unpublish(article_id):
     """Set article as unpublished. Requires JWT and moderator/admin role."""
-    news, err = unpublish_news(news_id)
+    article, err = unpublish_news(article_id)
     if err:
         return jsonify({"error": err}), 404
     log_activity(
@@ -301,10 +314,11 @@ def news_unpublish(news_id):
         category="news",
         action="news_unpublished",
         status="success",
-        message=f"News unpublished: {news.slug}",
+        message=f"News unpublished: {article.id}",
         route=request.path,
         method=request.method,
         target_type="news",
-        target_id=str(news.id),
+        target_id=str(article.id),
     )
-    return jsonify(news.to_dict()), 200
+    out = get_news_by_id(article.id, lang=article.default_language)
+    return jsonify(out), 200

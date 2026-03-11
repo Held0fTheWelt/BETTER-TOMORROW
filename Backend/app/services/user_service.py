@@ -335,11 +335,11 @@ def delete_user(user_id: int) -> tuple[bool, str | None]:
     if not user:
         return False, "User not found"
 
-    from app.models import News
+    from app.models import NewsArticle
     from app.models.password_reset_token import PasswordResetToken
     from app.models.email_verification_token import EmailVerificationToken
 
-    News.query.filter_by(author_id=user.id).update({"author_id": None}, synchronize_session=False)
+    NewsArticle.query.filter_by(author_id=user.id).update({"author_id": None}, synchronize_session=False)
     PasswordResetToken.query.filter_by(user_id=user.id).delete()
     EmailVerificationToken.query.filter_by(user_id=user.id).delete()
     db.session.delete(user)

@@ -95,6 +95,10 @@ class Config:
     # Public frontend URL (no trailing slash). When set, GET / and GET /news redirect there.
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip() or None
 
+    # Multilingual: supported language codes and default. Backend validates against SUPPORTED_LANGUAGES.
+    SUPPORTED_LANGUAGES = ["de", "en"]
+    DEFAULT_LANGUAGE = "de"
+
 
 class DevelopmentConfig(Config):
     """Dev-only: fallback secrets when DEV_SECRETS_OK is explicitly 1/true/yes/on.

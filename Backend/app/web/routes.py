@@ -349,8 +349,15 @@ def news():
     return render_template("news.html")
 
 
-def _get_wiki_html():
-    """Load wiki Markdown from content/wiki.md and return rendered HTML, or None if missing."""
+def _get_wiki_html(lang=None):
+    """Load wiki Markdown: from DB (wiki_pages key=index) if present, else from content/wiki.md."""
+    from app.services.wiki_service import get_wiki_markdown_for_display
+    text = get_wiki_markdown_for_display(lang=lang)
+    if text is not None and text != "":
+        try:
+            return markdown.markdown(text, extensions=["extra"])
+        except Exception:
+            pass
     app_root = Path(current_app.root_path)
     wiki_path = app_root.parent / "content" / "wiki.md"
     if not wiki_path.is_file():
@@ -364,7 +371,7 @@ def _get_wiki_html():
 
 @web_bp.route("/wiki")
 def wiki():
-    """Wiki view: render Markdown from Backend/content/wiki.md."""
+    """Wiki view: render Markdown from DB (default page) or Backend/content/wiki.md."""
     wiki_html = _get_wiki_html()
     return render_template("wiki.html", wiki_html=wiki_html)
 

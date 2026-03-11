@@ -30,8 +30,8 @@ def test_news_list_item_shape(client, sample_news):
     assert len(data["items"]) >= 1
     item = next((i for i in data["items"] if i["id"] == pub1.id), None)
     assert item is not None
-    assert item["title"] == pub1.title
-    assert item["slug"] == pub1.slug
+    assert item["title"] == "Published Article"
+    assert item["slug"] == "published-article"
     assert "summary" in item
     assert "content" in item
     assert "author_id" in item
@@ -53,8 +53,8 @@ def test_news_detail_returns_200_and_json(client, sample_news):
     assert response.status_code == 200
     data = response.get_json()
     assert data["id"] == pub1.id
-    assert data["title"] == pub1.title
-    assert data["slug"] == pub1.slug
+    assert data["title"] == "Published Article"
+    assert data["slug"] == "published-article"
     assert "content" in data
     assert "published_at" in data
 

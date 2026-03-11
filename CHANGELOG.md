@@ -4,6 +4,13 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ---
 
+### [0.0.11] – multilingual content architecture - 2026-03-11 (in progress)
+
+- **Phase 0 – Architecture:** Internal doc `docs/architecture/MultilingualArchitecture.md` defines supported languages (de, en), default (de), fallback order, translation statuses, role expectations, backend–n8n event contract, and public vs editorial routes.
+- **Phase 1 – Backend language foundation:** User model has `preferred_language`. Config adds `SUPPORTED_LANGUAGES` and `DEFAULT_LANGUAGE`. New `app/i18n.py` for language validation and translation status constants. News replaced with language-neutral `news_articles` plus `news_article_translations` (title, slug, summary, content, translation_status, etc.). Wiki replaced with `wiki_pages` plus `wiki_page_translations` (key, slug, content_markdown, translation_status). Migrations: 010 preferred_language, 011 news_articles + data migration from `news` and drop `news`, 012 wiki_pages + seed from `content/wiki.md`. Public news API supports `?lang=` and detail by id or slug; list/detail return effective translation with fallback. Backend `/wiki` renders from DB (default page) with file fallback. All 141 backend tests pass.
+
+---
+
 ### [0.0.10] – editorial/admin frontend - 2026-03-11
 
 - **Management area (Frontend):** Protected editorial and admin area at `/manage` (login at `/manage/login`). JWT-based auth: login form calls backend `POST /api/v1/auth/login`; token stored in `sessionStorage`; central `ManageAuth.apiFetchWithAuth()` attaches `Authorization: Bearer <token>` and redirects to login on 401. Current user bootstrapped via `GET /api/v1/auth/me`; username and role shown in header; logout clears token. Role-based nav: Users link visible only to admin.
