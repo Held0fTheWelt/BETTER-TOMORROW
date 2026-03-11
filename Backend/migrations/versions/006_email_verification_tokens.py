@@ -7,6 +7,7 @@ Create Date: 2025-03-10
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 revision = "006_evt"
 down_revision = "005_email_verified"
@@ -15,6 +16,9 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    if inspect(conn).has_table("email_verification_tokens"):
+        return
     op.create_table(
         "email_verification_tokens",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),

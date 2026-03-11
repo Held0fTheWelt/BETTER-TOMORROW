@@ -7,6 +7,7 @@ Create Date: 2025-03-10
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = "003_news"
@@ -16,6 +17,9 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    if inspect(conn).has_table("news"):
+        return
     op.create_table(
         "news",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),

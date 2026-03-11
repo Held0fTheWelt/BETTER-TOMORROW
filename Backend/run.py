@@ -14,10 +14,22 @@ app = create_app(
 
 @app.cli.command("init-db")
 def init_db():
-    """Create database tables and seed default roles. Does not create any users."""
+    """Create database tables and seed default roles. Does not create any users.
+    Also stamps Alembic at 'head' so that 'flask db upgrade' won't re-run migrations."""
     from app.models.role import ensure_roles_seeded
-    db.create_all()
-    ensure_roles_seeded()
+    with app.app_context():
+        db.create_all()
+        ensure_roles_seeded()
+        try:
+            from flask import current_app
+            migrate = current_app.extensions.get("migrate")
+            if migrate:
+                config = migrate.get_config()
+                from alembic import command
+                command.stamp(config, "head")
+        except Exception as e:
+            import warnings
+            warnings.warn(f"Could not stamp Alembic head: {e}. Run 'flask db stamp head' if you use db upgrade.", UserWarning)
     print("Database initialized.")
 
 
@@ -77,6 +89,65 @@ def seed_dev_user(username, password, generate):
         db.session.add(u)
         db.session.commit()
         print(f"Created dev user: {u_name}")
+        if generate:
+            print(f"Generated password (use once, then change or store securely): {u_pass}")
+
+
+@app.cli.command("seed-admin-user")
+@click.option("--username", default=None, help="Username for admin user (or set SEED_ADMIN_USERNAME)")
+@click.option("--password", default=None, help="Password (or set SEED_ADMIN_PASSWORD); omit when using --generate")
+@click.option("--generate", is_flag=True, help="Generate a random password and print it; username from SEED_ADMIN_USERNAME or 'admin'")
+def seed_admin_user(username, password, generate):
+    """Create an admin user for local testing. Requires DEV_SECRETS_OK=1. No email, so API login works without verification."""
+    if not env_bool("DEV_SECRETS_OK", False):
+        print("Refusing to seed: set DEV_SECRETS_OK=1 for local development only.")
+        return
+    from app.models import User, Role
+    from werkzeug.security import generate_password_hash
+
+    u_name = username or os.environ.get("SEED_ADMIN_USERNAME", "").strip()
+    if generate:
+        u_pass = secrets.token_urlsafe(16)
+        if not u_name:
+            u_name = "admin"
+    else:
+        u_pass = password or os.environ.get("SEED_ADMIN_PASSWORD", "").strip()
+        if u_name and not u_pass:
+            u_pass = click.prompt("Password", hide_input=True, confirmation_prompt=True)
+
+    if not u_name or not u_pass:
+        print(
+            "Provide credentials via SEED_ADMIN_USERNAME and SEED_ADMIN_PASSWORD, "
+            "or --username and --password (or --password prompt), or --generate."
+        )
+        return
+
+    if not generate:
+        pw_error = validate_password(u_pass)
+        if pw_error:
+            print(f"Password rejected: {pw_error}")
+            return
+
+    from app.models.role import ensure_roles_seeded
+
+    with app.app_context():
+        db.create_all()
+        ensure_roles_seeded()
+        if User.query.filter_by(username=u_name).first():
+            print(f"User {u_name} already exists.")
+            return
+        admin_role = Role.query.filter_by(name=Role.NAME_ADMIN).first()
+        if not admin_role:
+            print("Admin role not found. Run init-db or db upgrade first.")
+            return
+        u = User(
+            username=u_name,
+            password_hash=generate_password_hash(u_pass),
+            role_id=admin_role.id,
+        )
+        db.session.add(u)
+        db.session.commit()
+        print(f"Created admin user: {u_name}")
         if generate:
             print(f"Generated password (use once, then change or store securely): {u_pass}")
 

@@ -7,6 +7,7 @@ Create Date: 2025-03-11
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 revision = "007_roles"
 down_revision = "006_evt"
@@ -15,6 +16,9 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    if inspect(conn).has_table("roles"):
+        return
     op.create_table(
         "roles",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
