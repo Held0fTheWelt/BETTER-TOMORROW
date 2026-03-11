@@ -9,9 +9,15 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.i18n import (
     get_default_language,
+    get_supported_languages,
     is_supported_language,
     normalize_language,
+    TRANSLATION_STATUS_APPROVED,
+    TRANSLATION_STATUS_MACHINE_DRAFT,
+    TRANSLATION_STATUS_OUTDATED,
     TRANSLATION_STATUS_PUBLISHED,
+    TRANSLATION_STATUS_REVIEW_REQUIRED,
+    TRANSLATION_STATUSES,
 )
 from app.models import NewsArticle, NewsArticleTranslation
 
@@ -388,3 +394,184 @@ def unpublish_news(news_or_id):
     db.session.commit()
     logger.info("News article unpublished: id=%s", article.id)
     return article, None
+
+
+# --- Article translations (editorial) ---
+
+
+def list_article_translations(article_id: int):
+    """Return list of translation summaries for article (language_code, status, title, slug, etc.)."""
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return None, "News not found"
+    trans_list = NewsArticleTranslation.query.filter_by(article_id=article_id).all()
+    supported = get_supported_languages()
+    out = []
+    for lang in supported:
+        t = next((x for x in trans_list if x.language_code == lang), None)
+        if t:
+            out.append({
+                "language_code": t.language_code,
+                "translation_status": t.translation_status,
+                "title": t.title,
+                "slug": t.slug,
+                "translated_at": t.translated_at.isoformat() if t.translated_at else None,
+                "reviewed_at": t.reviewed_at.isoformat() if t.reviewed_at else None,
+            })
+        else:
+            out.append({
+                "language_code": lang,
+                "translation_status": "missing",
+                "title": None,
+                "slug": None,
+                "translated_at": None,
+                "reviewed_at": None,
+            })
+    return out, None
+
+
+def get_article_translation(article_id: int, language_code: str):
+    """Return full NewsArticleTranslation for article+lang or None."""
+    if not normalize_language(language_code):
+        return None
+    return NewsArticleTranslation.query.filter_by(
+        article_id=article_id,
+        language_code=normalize_language(language_code),
+    ).first()
+
+
+def _translation_to_dict(t: NewsArticleTranslation):
+    return {
+        "id": t.id,
+        "article_id": t.article_id,
+        "language_code": t.language_code,
+        "title": t.title,
+        "slug": t.slug,
+        "summary": t.summary,
+        "content": t.content,
+        "seo_title": t.seo_title,
+        "seo_description": t.seo_description,
+        "translation_status": t.translation_status,
+        "source_language": t.source_language,
+        "source_version": t.source_version,
+        "translated_at": t.translated_at.isoformat() if t.translated_at else None,
+        "reviewed_by": t.reviewed_by,
+        "reviewed_at": t.reviewed_at.isoformat() if t.reviewed_at else None,
+    }
+
+
+def upsert_article_translation(
+    article_id: int,
+    language_code: str,
+    *,
+    title: str | None = None,
+    slug: str | None = None,
+    summary: str | None = None,
+    content: str | None = None,
+    seo_title: str | None = None,
+    seo_description: str | None = None,
+    translation_status: str | None = None,
+):
+    """Create or update a news article translation. Returns (translation, None) or (None, error_message)."""
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return None, "News not found"
+    lang = normalize_language(language_code)
+    if not lang:
+        return None, "Unsupported language"
+    trans = get_article_translation(article_id, lang)
+    if trans:
+        if title is not None:
+            trans.title = (title or "").strip() or trans.title
+            if len(trans.title) > TITLE_MAX_LENGTH:
+                return None, f"Title must be at most {TITLE_MAX_LENGTH} characters"
+        if slug is not None:
+            slug_norm = _normalize_slug(slug)
+            if not slug_norm:
+                return None, "Slug must be alphanumeric with hyphens"
+            if _slug_exists_for_lang(slug_norm, lang, exclude_article_id=article_id):
+                return None, "Slug already in use for this language"
+            trans.slug = slug_norm
+        if summary is not None:
+            trans.summary = (summary or "").strip() or None
+            if trans.summary and len(trans.summary) > SUMMARY_MAX_LENGTH:
+                return None, f"Summary must be at most {SUMMARY_MAX_LENGTH} characters"
+        if content is not None:
+            trans.content = (content or "").strip() or trans.content
+        if seo_title is not None:
+            trans.seo_title = (seo_title or "").strip() or None
+        if seo_description is not None:
+            trans.seo_description = (seo_description or "").strip() or None
+        if translation_status is not None and translation_status in TRANSLATION_STATUSES:
+            trans.translation_status = translation_status
+        db.session.commit()
+        db.session.refresh(trans)
+        return trans, None
+    # Create new translation
+    if not title or not content:
+        return None, "title and content are required for new translation"
+    slug_norm = _normalize_slug(slug) if slug else _normalize_slug(title)
+    if not slug_norm:
+        return None, "Slug is required"
+    if _slug_exists_for_lang(slug_norm, lang):
+        return None, "Slug already in use for this language"
+    now = _utc_now()
+    status = translation_status if translation_status in TRANSLATION_STATUSES else TRANSLATION_STATUS_MACHINE_DRAFT
+    trans = NewsArticleTranslation(
+        article_id=article_id,
+        language_code=lang,
+        title=(title or "").strip(),
+        slug=slug_norm,
+        summary=(summary or "").strip() or None,
+        content=(content or "").strip(),
+        seo_title=(seo_title or "").strip() or None,
+        seo_description=(seo_description or "").strip() or None,
+        translation_status=status,
+        source_language=article.default_language,
+        translated_at=now,
+    )
+    db.session.add(trans)
+    db.session.commit()
+    logger.info("News translation created: article_id=%s lang=%s", article_id, lang)
+    return trans, None
+
+
+def submit_review_article_translation(article_id: int, language_code: str):
+    """Set translation status to review_required. Returns (translation, None) or (None, error_message)."""
+    trans = get_article_translation(article_id, normalize_language(language_code) or "")
+    if not trans:
+        return None, "Translation not found"
+    trans.translation_status = TRANSLATION_STATUS_REVIEW_REQUIRED
+    db.session.commit()
+    return trans, None
+
+
+def approve_article_translation(article_id: int, language_code: str, reviewer_id: int | None = None):
+    """Set translation status to approved and set reviewed_by/reviewed_at. Returns (translation, None) or (None, error_message)."""
+    trans = get_article_translation(article_id, normalize_language(language_code) or "")
+    if not trans:
+        return None, "Translation not found"
+    trans.translation_status = TRANSLATION_STATUS_APPROVED
+    trans.reviewed_by = reviewer_id
+    trans.reviewed_at = _utc_now()
+    db.session.commit()
+    return trans, None
+
+
+def publish_article_translation(article_id: int, language_code: str):
+    """Set translation status to published. Returns (translation, None) or (None, error_message)."""
+    trans = get_article_translation(article_id, normalize_language(language_code) or "")
+    if not trans:
+        return None, "Translation not found"
+    trans.translation_status = TRANSLATION_STATUS_PUBLISHED
+    db.session.commit()
+    return trans, None
+
+
+def mark_article_translations_outdated(article_id: int, exclude_language: str | None = None):
+    """Mark all translations except exclude_language as outdated (e.g. after source change)."""
+    q = NewsArticleTranslation.query.filter_by(article_id=article_id)
+    if exclude_language:
+        q = q.filter(NewsArticleTranslation.language_code != exclude_language)
+    q.update({"translation_status": TRANSLATION_STATUS_OUTDATED}, synchronize_session=False)
+    db.session.commit()

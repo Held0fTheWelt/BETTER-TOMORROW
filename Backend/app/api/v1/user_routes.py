@@ -74,6 +74,33 @@ def users_get(user_id):
     return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban)), 200
 
 
+@api_v1_bp.route("/users/<int:user_id>/preferences", methods=["PUT"])
+@limiter.limit("30 per minute")
+@jwt_required()
+def users_preferences(user_id):
+    """Update user preferences (e.g. preferred_language). User can update self; admin can update any."""
+    current = get_current_user()
+    if current is None:
+        return jsonify({"error": "User not found"}), 404
+    if current.id != user_id and not current_user_is_admin():
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+    kwargs = {}
+    if "preferred_language" in data:
+        kwargs["preferred_language"] = data.get("preferred_language")
+    if not kwargs:
+        return jsonify({"error": "No preference fields to update"}), 400
+    user, err = update_user_service(user_id, **kwargs)
+    if err:
+        status = 400 if err == "Unsupported language" else 404
+        return jsonify({"error": err}), status
+    include_email = current_user_is_admin() or current.id == user.id
+    include_ban = current_user_is_admin()
+    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban)), 200
+
+
 @api_v1_bp.route("/users/<int:user_id>", methods=["PUT"])
 @limiter.limit("30 per minute")
 @jwt_required()
@@ -101,6 +128,8 @@ def users_update(user_id):
         kwargs["new_password"] = data.get("password")
     if "current_password" in data:
         kwargs["current_password"] = data.get("current_password")
+    if "preferred_language" in data:
+        kwargs["preferred_language"] = data.get("preferred_language")
 
     if current_user_is_admin() and "role" in data:
         kwargs["role"] = data.get("role")

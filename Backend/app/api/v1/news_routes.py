@@ -24,17 +24,25 @@ from app.auth import current_user_can_write_news
 from app.auth.permissions import get_current_user, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.services import log_activity
+from app.i18n import normalize_language
 from app.services.news_service import (
     SORT_FIELDS,
     SORT_ORDERS,
+    approve_article_translation,
     create_news,
     delete_news,
+    get_article_translation,
     get_news_by_id,
     get_news_article_by_id,
+    list_article_translations,
     list_news,
+    publish_article_translation,
     publish_news,
+    submit_review_article_translation,
     unpublish_news,
     update_news,
+    upsert_article_translation,
+    _translation_to_dict,
 )
 
 
@@ -322,3 +330,118 @@ def news_unpublish(article_id):
     )
     out = get_news_by_id(article.id, lang=article.default_language)
     return jsonify(out), 200
+
+
+# --- Article translations (editorial) ---
+
+
+@api_v1_bp.route("/news/<int:article_id>/translations", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+def news_translations_list(article_id):
+    """List translation status per language for article. Requires moderator/admin."""
+    items, err = list_article_translations(article_id)
+    if err:
+        return jsonify({"error": err}), 404
+    return jsonify({"items": items}), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/translations/<lang>", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+def news_translation_get(article_id, lang):
+    """Get one translation by language. Requires moderator/admin."""
+    if not normalize_language(lang):
+        return jsonify({"error": "Unsupported language"}), 400
+    trans = get_article_translation(article_id, lang)
+    if not trans:
+        return jsonify({"error": "Translation not found"}), 404
+    return jsonify(_translation_to_dict(trans)), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/translations/<lang>", methods=["PUT"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def news_translation_put(article_id, lang):
+    """Create or update a translation. Body: title, slug, summary, content, seo_title, seo_description, translation_status. Requires moderator/admin."""
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+    trans, err = upsert_article_translation(
+        article_id,
+        lang,
+        title=data.get("title"),
+        slug=data.get("slug"),
+        summary=data.get("summary"),
+        content=data.get("content"),
+        seo_title=data.get("seo_title"),
+        seo_description=data.get("seo_description"),
+        translation_status=data.get("translation_status"),
+    )
+    if err:
+        status = 404 if err == "News not found" else 400
+        if err == "Unsupported language":
+            status = 400
+        if err.startswith("Slug already"):
+            status = 409
+        return jsonify({"error": err}), status
+    return jsonify(_translation_to_dict(trans)), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/translations/<lang>/submit-review", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def news_translation_submit_review(article_id, lang):
+    """Set translation status to review_required. Requires moderator/admin."""
+    trans, err = submit_review_article_translation(article_id, lang)
+    if err:
+        return jsonify({"error": err}), 404
+    return jsonify(_translation_to_dict(trans)), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/translations/<lang>/approve", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def news_translation_approve(article_id, lang):
+    """Set translation status to approved and set reviewed_by. Requires moderator/admin."""
+    user = get_current_user()
+    reviewer_id = user.id if user else None
+    trans, err = approve_article_translation(article_id, lang, reviewer_id=reviewer_id)
+    if err:
+        return jsonify({"error": err}), 404
+    return jsonify(_translation_to_dict(trans)), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/translations/<lang>/publish", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def news_translation_publish(article_id, lang):
+    """Set translation status to published. Requires moderator/admin."""
+    trans, err = publish_article_translation(article_id, lang)
+    if err:
+        return jsonify({"error": err}), 404
+    return jsonify(_translation_to_dict(trans)), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/translations/auto-translate", methods=["POST"])
+@limiter.limit("20 per minute")
+@require_jwt_moderator_or_admin
+def news_auto_translate(article_id):
+    """
+    Request machine translation for missing languages. Body: target_language (optional, else all missing).
+    Creates machine_draft translations; n8n can create them via API. Returns current translation statuses.
+    """
+    data = request.get_json(silent=True) or {}
+    target_lang = (data.get("target_language") or "").strip().lower() or None
+    from app.i18n import get_supported_languages
+    supported = get_supported_languages()
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return jsonify({"error": "News not found"}), 404
+    if target_lang and target_lang not in supported:
+        return jsonify({"error": "Unsupported target language"}), 400
+    items, _ = list_article_translations(article_id)
+    return jsonify({
+        "message": "Auto-translate requested; translations will be created as machine_draft by automation.",
+        "translations": items,
+    }), 202

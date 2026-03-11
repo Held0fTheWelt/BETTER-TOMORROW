@@ -270,6 +270,7 @@ def update_user(
     new_password: str | None = None,
     role: str | None = None,
     current_password: str | None = None,
+    preferred_language: str | None = None,
 ) -> tuple[User | None, str | None]:
     """
     Update a user by id. Returns (user, None) or (None, error_message).
@@ -319,6 +320,14 @@ def update_user(
         if not role_obj:
             return None, "Invalid role"
         user.role_id = role_obj.id
+
+    if preferred_language is not None:
+        from flask import current_app
+        supported = current_app.config.get("SUPPORTED_LANGUAGES", ["de", "en"])
+        val = (preferred_language or "").strip().lower() or None
+        if val is not None and val not in supported:
+            return None, "Unsupported language"
+        user.preferred_language = val
 
     db.session.commit()
     db.session.refresh(user)

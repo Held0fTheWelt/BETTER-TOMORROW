@@ -1,4 +1,4 @@
-"""Wiki API: read and update wiki markdown source. Requires moderator or admin for read/write."""
+"""Wiki API: public page by slug; legacy file GET/PUT; wiki-admin in wiki_admin_routes."""
 from pathlib import Path
 
 import markdown
@@ -8,12 +8,34 @@ from app.api.v1 import api_v1_bp
 from app.auth.permissions import get_current_user, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.services import log_activity
+from app.services.wiki_service import get_wiki_page_by_slug
 
 
 def _wiki_path():
     """Return Path to Backend/content/wiki.md. Resolved from app root."""
     app_root = Path(current_app.root_path)
     return app_root.parent / "content" / "wiki.md"
+
+
+@api_v1_bp.route("/wiki/<slug>", methods=["GET"])
+@limiter.limit("60 per minute")
+def wiki_page_get(slug):
+    """Public: get wiki page by slug. Query: lang. Returns title, slug, content_markdown, html, language_code."""
+    lang = request.args.get("lang", "").strip() or None
+    page, trans = get_wiki_page_by_slug(slug, lang=lang)
+    if not page or not trans:
+        return jsonify({"error": "Not found"}), 404
+    try:
+        html = markdown.markdown(trans.content_markdown or "", extensions=["extra"])
+    except Exception:
+        html = None
+    return jsonify({
+        "title": trans.title,
+        "slug": trans.slug,
+        "content_markdown": trans.content_markdown,
+        "html": html,
+        "language_code": trans.language_code,
+    }), 200
 
 
 @api_v1_bp.route("/wiki", methods=["GET"])
