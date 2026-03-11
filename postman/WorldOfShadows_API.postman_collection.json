@@ -29,7 +29,8 @@
     { "key": "register_email", "value": "postman@example.com" },
     { "key": "register_password", "value": "PostmanPass1" },
     { "key": "target_user_id", "value": "" },
-    { "key": "role_id", "value": "" }
+    { "key": "role_id", "value": "" },
+    { "key": "slogan_id", "value": "" }
   ],
   "item": [
     {
@@ -1152,6 +1153,112 @@
               ]
             },
             "description": "Export activity logs as CSV (admin only). Same filters as list; limit max 5000. 403 if not admin."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Slogans",
+      "description": "Slogan CRUD (moderator+). Placement resolution via Site / Site slogan (public).",
+      "item": [
+        {
+          "name": "Slogans List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/slogans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "slogans"],
+              "query": [
+                { "key": "placement_key", "value": "", "disabled": true },
+                { "key": "language_code", "value": "", "disabled": true },
+                { "key": "category", "value": "", "disabled": true }
+              ]
+            },
+            "description": "List slogans (moderator or admin). Query: placement_key, language_code, category, active_only."
+          }
+        },
+        {
+          "name": "Slogan Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.id) pm.collectionVariables.set('slogan_id', String(j.id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"A dark foundation for a dark future.\",\n  \"category\": \"landing_teaser\",\n  \"placement_key\": \"landing.teaser.primary\",\n  \"language_code\": \"de\",\n  \"is_active\": true,\n  \"is_pinned\": false,\n  \"priority\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/slogans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "slogans"]
+            },
+            "description": "Create a slogan (moderator+). Body: text, category, placement_key, language_code, is_active, is_pinned, priority, valid_from, valid_until."
+          }
+        },
+        {
+          "name": "Slogan Activate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/slogans/{{slogan_id}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "slogans", "{{slogan_id}}", "activate"]
+            },
+            "description": "Set slogan is_active=true. Replace 1 with slogan id."
+          }
+        },
+        {
+          "name": "Slogan Deactivate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/slogans/{{slogan_id}}/deactivate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "slogans", "{{slogan_id}}", "deactivate"]
+            },
+            "description": "Set slogan is_active=false. Replace 1 with slogan id."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Site",
+      "description": "Public site API: slogan resolution (no auth).",
+      "item": [
+        {
+          "name": "Site Slogan (resolve placement)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/site/slogan?placement=landing.teaser.primary&lang=de",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "site", "slogan"],
+              "query": [
+                { "key": "placement", "value": "landing.teaser.primary" },
+                { "key": "lang", "value": "de" }
+              ]
+            },
+            "description": "Resolve one slogan for placement and language. Public. Returns { text, placement_key, language_code } or text null."
           }
         }
       ]
