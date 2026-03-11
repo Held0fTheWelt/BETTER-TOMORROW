@@ -93,11 +93,14 @@ def list_users(page: int = 1, per_page: int = 20, search: str | None = None):
     return q.all(), total
 
 
-def create_user(username, password, email):
+def create_user(username, password, email=None):
     """
     Create a new user. Returns (user, None) or (None, error_message).
-    Email is required; must be valid format and unique.
+    Email is optional when REGISTRATION_REQUIRE_EMAIL is False; otherwise required, valid format and unique.
     """
+    from flask import current_app
+    require_email = current_app.config.get("REGISTRATION_REQUIRE_EMAIL", False)
+
     username = (username or "").strip()
     if not username:
         return None, "Username is required"
@@ -113,15 +116,21 @@ def create_user(username, password, email):
     if get_user_by_username(username):
         return None, "Username already taken"
 
-    if not email or not isinstance(email, str):
-        return None, "Email is required"
-    email_val = (email or "").strip().lower()
-    if not email_val:
-        return None, "Email is required"
-    if not EMAIL_BASIC_PATTERN.match(email_val):
-        return None, "Invalid email format"
-    if get_user_by_email(email_val):
-        return None, "Email already registered"
+    email_val = None
+    if email is not None and isinstance(email, str):
+        email_val = (email or "").strip().lower()
+    if require_email:
+        if not email_val:
+            return None, "Email is required"
+        if not EMAIL_BASIC_PATTERN.match(email_val):
+            return None, "Invalid email format"
+        if get_user_by_email(email_val):
+            return None, "Email already registered"
+    elif email_val:
+        if not EMAIL_BASIC_PATTERN.match(email_val):
+            return None, "Invalid email format"
+        if get_user_by_email(email_val):
+            return None, "Email already registered"
 
     default_role = Role.query.filter_by(name=Role.NAME_USER).first()
     if not default_role:

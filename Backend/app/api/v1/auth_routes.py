@@ -21,10 +21,12 @@ def register():
         return jsonify({"error": "Invalid or missing JSON body"}), 400
     username = (data.get("username") or "").strip()
     password = data.get("password")
-    email = (data.get("email") or "").strip().lower()
-    if not email:
+    email_raw = data.get("email")
+    email = (email_raw or "").strip().lower() if email_raw is not None else ""
+    require_email = current_app.config.get("REGISTRATION_REQUIRE_EMAIL", False)
+    if require_email and not email:
         return jsonify({"error": "Email is required"}), 400
-    user, err = create_user(username, password, email)
+    user, err = create_user(username, password, email or None)
     if err:
         status = 409 if err in ("Username already taken", "Email already registered") else 400
         return jsonify({"error": err}), status
@@ -38,19 +40,20 @@ def register():
         method=request.method,
         tags=["api"],
     )
-    ttl = current_app.config.get("EMAIL_VERIFICATION_TTL_HOURS", 24)
-    raw_token = create_email_verification_token(user, ttl_hours=ttl)
-    send_verification_email(user, raw_token)
-    log_activity(
-        actor=user,
-        category="auth",
-        action="verification_email_sent",
-        status="success",
-        message="Verification email sent",
-        route=request.path,
-        method=request.method,
-        tags=["api", "email"],
-    )
+    if user.email:
+        ttl = current_app.config.get("EMAIL_VERIFICATION_TTL_HOURS", 24)
+        raw_token = create_email_verification_token(user, ttl_hours=ttl)
+        send_verification_email(user, raw_token)
+        log_activity(
+            actor=user,
+            category="auth",
+            action="verification_email_sent",
+            status="success",
+            message="Verification email sent",
+            route=request.path,
+            method=request.method,
+            tags=["api", "email"],
+        )
     return jsonify({"id": user.id, "username": user.username}), 201
 
 

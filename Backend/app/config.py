@@ -82,6 +82,9 @@ class Config:
     )
     MAIL_ENABLED = env_bool("MAIL_ENABLED", False)
 
+    # Registration: require email and verification (set to False to allow registration without email)
+    REGISTRATION_REQUIRE_EMAIL = env_bool("REGISTRATION_REQUIRE_EMAIL", False)
+
     # Email verification (0.0.7): base URL for activation links (no trailing slash)
     APP_PUBLIC_BASE_URL = os.environ.get("APP_PUBLIC_BASE_URL", "").strip() or None
     EMAIL_VERIFICATION_TTL_HOURS = int(os.environ.get("EMAIL_VERIFICATION_TTL_HOURS", "24"))
