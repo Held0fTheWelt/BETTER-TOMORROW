@@ -9,3 +9,4 @@ from app.api.v1 import role_routes  # noqa: F401, E402
 from app.api.v1 import system_routes  # noqa: F401, E402
 from app.api.v1 import news_routes  # noqa: F401, E402
 from app.api.v1 import user_routes  # noqa: F401, E402
+from app.api.v1 import wiki_routes  # noqa: F401, E402

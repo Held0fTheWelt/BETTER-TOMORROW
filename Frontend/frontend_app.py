@@ -44,6 +44,38 @@ def news_detail(news_id):
     return render_template("news_detail.html", news_id=news_id)
 
 
+# --- Management / editorial area (protected by frontend auth; backend enforces roles) ---
+
+@app.route("/manage")
+def manage_index():
+    """Management area entry; redirects to login or dashboard (news)."""
+    return render_template("manage/dashboard.html")
+
+
+@app.route("/manage/login")
+def manage_login():
+    """Management login page (JWT via backend API)."""
+    return render_template("manage/login.html")
+
+
+@app.route("/manage/news")
+def manage_news():
+    """News management (list, create, edit, publish, unpublish, delete)."""
+    return render_template("manage/news.html")
+
+
+@app.route("/manage/users")
+def manage_users():
+    """User administration (admin only; table, edit, role, ban, unban)."""
+    return render_template("manage/users.html")
+
+
+@app.route("/manage/wiki")
+def manage_wiki():
+    """Wiki editor (markdown source, preview, save)."""
+    return render_template("manage/wiki.html")
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     debug = os.environ.get("FLASK_DEBUG", "0").strip().lower() in ("1", "true", "yes", "on")

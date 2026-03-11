@@ -1,0 +1,23 @@
+{% extends "manage/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="manage-dashboard">
+    <h1 class="page-header">Management</h1>
+    <p class="muted">Choose a section from the navigation.</p>
+    <div class="card-grid manage-dashboard-cards">
+        <a href="{{ url_for('manage_news') }}" class="card card-link">
+            <h3>News</h3>
+            <p>Create, edit, publish, and moderate news articles.</p>
+        </a>
+        <a href="{{ url_for('manage_users') }}" class="card card-link" id="manage-dashboard-users">
+            <h3>Users</h3>
+            <p>Manage user accounts, roles, and bans (admin only).</p>
+        </a>
+        <a href="{{ url_for('manage_wiki') }}" class="card card-link">
+            <h3>Wiki</h3>
+            <p>Edit the wiki markdown source.</p>
+        </a>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='manage_dashboard.js') }}"></script>
+{% endblock %}

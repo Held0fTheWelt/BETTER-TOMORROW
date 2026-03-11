@@ -11,8 +11,8 @@ Backend/                 # API, auth, dashboard, DB, migrations, tests
   tests/                  # pytest (test_api, test_web, test_news_api, …)
   run.py                  # entrypoint; CLI: init-db, seed-dev-user, seed-news
   requirements.txt, requirements-dev.txt, Dockerfile, pytest.ini
-Frontend/                 # Public website
-  frontend_app.py         # Flask app: /, /news, /news/<id>
+Frontend/                 # Public website + management area
+  frontend_app.py         # Flask app: /, /news, /news/<id>; /manage, /manage/login, /manage/news, /manage/users, /manage/wiki
   templates/, static/
   requirements.txt, Dockerfile
 README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
@@ -81,7 +81,7 @@ pip install -r requirements.txt
 python frontend_app.py
 ```
 
-Default: **http://127.0.0.1:5001**. Open in browser; login/register/dashboard links point to the backend (using **BACKEND_API_URL**). News list and detail load data from `GET /api/v1/news` and `GET /api/v1/news/<id>`.
+Default: **http://127.0.0.1:5001**. Open in browser; login/register/dashboard links point to the backend (using **BACKEND_API_URL**). News list and detail load data from `GET /api/v1/news` and `GET /api/v1/news/<id>`. **Management area:** `/manage` (staff login at `/manage/login`); JWT in sessionStorage; news, user admin (admin only), and wiki editing. See `docs/runbook.md` for management frontend and wiki API.
 
 ### 3. CORS (when Backend and Frontend on different ports)
 

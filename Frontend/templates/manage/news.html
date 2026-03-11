@@ -1,0 +1,101 @@
+{% extends "manage/base.html" %}
+{% block title %}News{% endblock %}
+{% block content %}
+<div class="manage-news">
+    <h1 class="page-header">News</h1>
+    <div class="manage-split">
+        <div class="manage-panel manage-news-list-panel">
+            <h2>Articles</h2>
+            <div class="news-controls manage-news-controls">
+                <div class="news-controls-row">
+                    <input type="text" id="manage-news-q" class="news-input" placeholder="Search" aria-label="Search">
+                    <input type="text" id="manage-news-category" class="news-input" placeholder="Category" aria-label="Category">
+                    <select id="manage-news-status" class="news-select" aria-label="Status">
+                        <option value="">All</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                    <select id="manage-news-sort" class="news-select" aria-label="Sort">
+                        <option value="published_at">Published</option>
+                        <option value="created_at">Created</option>
+                        <option value="updated_at">Updated</option>
+                        <option value="title">Title</option>
+                    </select>
+                    <select id="manage-news-direction" class="news-select" aria-label="Direction">
+                        <option value="desc">Desc</option>
+                        <option value="asc">Asc</option>
+                    </select>
+                    <button type="button" class="btn btn-primary" id="manage-news-apply">Apply</button>
+                    <button type="button" class="btn btn-primary" id="manage-news-new">New article</button>
+                </div>
+            </div>
+            <div id="manage-news-loading" class="manage-loading" hidden>Loading…</div>
+            <div id="manage-news-error" class="form-error manage-state" role="alert" hidden></div>
+            <div id="manage-news-empty" class="manage-empty" hidden>No articles found.</div>
+            <div class="manage-table-wrap" id="manage-news-table-wrap" hidden>
+                <table class="manage-table" id="manage-news-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Category</th>
+                            <th>Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="manage-news-tbody"></tbody>
+                </table>
+            </div>
+            <div id="manage-news-pagination" class="news-pagination" hidden>
+                <span id="manage-news-pagination-info" class="news-pagination-info"></span>
+                <div class="news-pagination-btns">
+                    <button type="button" class="btn btn-ghost" id="manage-news-prev">Previous</button>
+                    <button type="button" class="btn btn-ghost" id="manage-news-next">Next</button>
+                </div>
+            </div>
+        </div>
+        <div class="manage-panel manage-news-editor-panel" id="manage-news-editor-panel">
+            <h2 id="manage-news-editor-title">Create / Edit</h2>
+            <div id="manage-news-editor-empty" class="manage-empty">Select an article or click “New article”.</div>
+            <form id="manage-news-form" class="manage-news-form" hidden>
+                <input type="hidden" id="manage-news-id" name="id">
+                <div class="form-group">
+                    <label for="manage-news-title">Title *</label>
+                    <input type="text" id="manage-news-title" name="title" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="manage-news-slug">Slug *</label>
+                    <input type="text" id="manage-news-slug" name="slug" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="manage-news-summary">Summary</label>
+                    <input type="text" id="manage-news-summary" name="summary" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="manage-news-content">Content *</label>
+                    <textarea id="manage-news-content" name="content" required class="form-input" rows="6"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="manage-news-category-edit">Category</label>
+                    <input type="text" id="manage-news-category-edit" name="category" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="manage-news-cover">Cover image URL</label>
+                    <input type="text" id="manage-news-cover" name="cover_image" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="manage-news-published" name="is_published"> Published</label>
+                </div>
+                <div id="manage-news-form-error" class="form-error" role="alert" hidden></div>
+                <div id="manage-news-form-success" class="form-success" hidden></div>
+                <div class="manage-news-form-actions">
+                    <button type="submit" class="btn btn-primary" id="manage-news-save">Save</button>
+                    <button type="button" class="btn btn-ghost" id="manage-news-publish-btn" hidden>Publish</button>
+                    <button type="button" class="btn btn-ghost" id="manage-news-unpublish-btn" hidden>Unpublish</button>
+                    <button type="button" class="btn btn-danger" id="manage-news-delete-btn">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='manage_news.js') }}"></script>
+{% endblock %}

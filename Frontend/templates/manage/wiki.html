@@ -1,0 +1,31 @@
+{% extends "manage/base.html" %}
+{% block title %}Wiki{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+{% block content %}
+<div class="manage-wiki">
+    <h1 class="page-header">Wiki editor</h1>
+    <p class="muted">Edit the wiki markdown source. Changes are saved to the server.</p>
+    <div id="manage-wiki-loading" class="manage-loading">Loading…</div>
+    <div id="manage-wiki-error" class="form-error manage-state" role="alert" hidden></div>
+    <div id="manage-wiki-editor-wrap" class="manage-wiki-wrap" hidden>
+        <div class="manage-split">
+            <div class="manage-panel">
+                <h2>Source</h2>
+                <textarea id="manage-wiki-content" class="form-input manage-wiki-textarea" rows="24" placeholder="Markdown content…"></textarea>
+                <div class="manage-wiki-actions">
+                    <button type="button" class="btn btn-primary" id="manage-wiki-save">Save</button>
+                    <span id="manage-wiki-dirty" class="muted" hidden>Unsaved changes</span>
+                    <span id="manage-wiki-saved" class="form-success" hidden>Saved.</span>
+                </div>
+            </div>
+            <div class="manage-panel">
+                <h2>Preview</h2>
+                <div id="manage-wiki-preview" class="manage-wiki-preview"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='manage_wiki.js') }}"></script>
+{% endblock %}

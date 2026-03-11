@@ -119,6 +119,17 @@ Server: http://127.0.0.1:5000
 
 ---
 
+## Management frontend (editorial area)
+
+The **Frontend** app exposes a protected management area for staff and admins:
+
+- **URL:** `http://127.0.0.1:5001/manage` (or `/manage/login` to log in).
+- **Auth:** Login form sends credentials to backend `POST /api/v1/auth/login`; the returned JWT is stored in **sessionStorage** (not localStorage). All management API calls use a central helper that sends `Authorization: Bearer <token>`. If the backend returns 401, the frontend clears the token and redirects to `/manage/login`. Current user is loaded via `GET /api/v1/auth/me` and shown in the header (username, role); logout clears the token.
+- **Pages:** `/manage` (dashboard), `/manage/news` (news list/create/edit/publish/unpublish/delete), `/manage/users` (user table and edit; **admin only**), `/manage/wiki` (wiki markdown editor). Role-based visibility: the "Users" link is shown only to users with role `admin`.
+- **Config:** Same as the public frontend: `BACKEND_API_URL` must point to the backend (e.g. `http://127.0.0.1:5000`). CORS must allow the frontend origin so the browser can call the API.
+
+---
+
 ## API flow (example)
 
 **Bash / Terminal:**
@@ -158,6 +169,13 @@ $TOKEN = ( $response | python -c "import sys,json; print(json.load(sys.stdin)['a
 curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/auth/me
 curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/protected
 ```
+
+---
+
+## Wiki API (editorial)
+
+- **GET /api/v1/wiki** — Returns wiki source and rendered HTML. Requires JWT with **moderator** or **admin** role. Response: `{ "content": "<markdown>", "html": "<html or null>" }`. File: `Backend/content/wiki.md`.
+- **PUT /api/v1/wiki** — Updates wiki markdown. Requires JWT with moderator or admin. Body: `{ "content": "<markdown string>" }`. Activity is logged when the logging system is used.
 
 ---
 

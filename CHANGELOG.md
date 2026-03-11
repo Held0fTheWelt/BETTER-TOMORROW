@@ -4,7 +4,13 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ---
 
-_(No changes yet.)_
+### Added (0.0.10 – editorial/admin frontend)
+
+- **Management area (Frontend):** Protected editorial and admin area at `/manage` (login at `/manage/login`). JWT-based auth: login form calls backend `POST /api/v1/auth/login`; token stored in `sessionStorage`; central `ManageAuth.apiFetchWithAuth()` attaches `Authorization: Bearer <token>` and redirects to login on 401. Current user bootstrapped via `GET /api/v1/auth/me`; username and role shown in header; logout clears token. Role-based nav: Users link visible only to admin.
+- **News management UI:** `/manage/news` – list with pagination, search, category and published/draft filters, sort; row selection; create/edit form (title, slug, summary, content, category, cover_image, is_published); publish, unpublish, delete with confirmation; uses existing news API (list with `include_drafts=1` for staff, get/create/update/delete/publish/unpublish).
+- **User administration UI:** `/manage/users` (admin only) – table with pagination and search; select row for detail panel; edit username, email, role (no password fields); ban (optional reason), unban, delete with confirmation. Uses `GET/PUT/DELETE /api/v1/users`, `PATCH .../role`, `POST .../ban`, `POST .../unban`.
+- **Wiki editing:** Backend `GET /api/v1/wiki` and `PUT /api/v1/wiki` (moderator or admin). Read returns `{ content, html }` from `Backend/content/wiki.md`; write updates the file with optional activity logging. Frontend `/manage/wiki` – load source, textarea editor, client-side preview (marked.js), save; unsaved-changes handling. Public wiki view (`Backend /wiki`) unchanged.
+- **Docs:** Management routes, frontend auth (sessionStorage, apiFetchWithAuth, /auth/me), and wiki API described in `docs/runbook.md` and `README.md` where relevant.
 
 ---
 
