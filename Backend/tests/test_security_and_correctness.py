@@ -1,4 +1,5 @@
 """Regression tests for security and correctness fixes (0.0.12)."""
+import logging
 import pytest
 
 
@@ -36,6 +37,24 @@ def test_password_change_requires_current_password(client, test_user):
     assert "error" in r.get_json()
 
 
+def test_password_change_without_current_password_fails(client, test_user):
+    """PUT /users/<id>/password with new_password but no current_password returns 400 (regression)."""
+    user, password = test_user
+    login = client.post("/api/v1/auth/login", json={"username": user.username, "password": password})
+    assert login.status_code == 200
+    token = login.get_json()["access_token"]
+    headers = {"Authorization": "Bearer " + token}
+    r = client.put(
+        f"/api/v1/users/{user.id}/password",
+        json={"new_password": "NewValid123"},
+        headers=headers,
+    )
+    assert r.status_code == 400
+    data = r.get_json()
+    assert "error" in data
+    assert "current_password" in data["error"].lower()
+
+
 def test_password_change_succeeds_with_correct_current_password(client, test_user):
     """PUT /users/<id>/password with correct current_password succeeds."""
     user, password = test_user
@@ -53,19 +72,33 @@ def test_password_change_succeeds_with_correct_current_password(client, test_use
     assert login2.status_code == 200
 
 
-def test_generic_user_update_ignores_password(client, admin_headers, test_user):
-    """PUT /users/<id> with password in body does not change password."""
-    user, password = test_user
+def test_generic_user_update_rejects_password_field(client, admin_headers, test_user):
+    """PUT /users/<id> with password or current_password in body returns 400 and points to password endpoint."""
+    user, _ = test_user
     r = client.put(
         f"/api/v1/users/{user.id}",
         json={"username": user.username, "password": "AttemptedNew1"},
         headers=admin_headers,
     )
-    assert r.status_code == 200
-    login = client.post("/api/v1/auth/login", json={"username": user.username, "password": password})
-    assert login.status_code == 200
-    login_bad = client.post("/api/v1/auth/login", json={"username": user.username, "password": "AttemptedNew1"})
-    assert login_bad.status_code in (401, 403)
+    assert r.status_code == 400
+    data = r.get_json()
+    assert "error" in data
+    assert "password" in data["error"].lower()
+    assert "/password" in data["error"]
+
+
+def test_generic_user_update_rejects_current_password_field(client, admin_headers, test_user):
+    """PUT /users/<id> with current_password in body returns 400."""
+    user, _ = test_user
+    r = client.put(
+        f"/api/v1/users/{user.id}",
+        json={"username": user.username, "current_password": "any", "new_password": "New1"},
+        headers=admin_headers,
+    )
+    assert r.status_code == 400
+    data = r.get_json()
+    assert "error" in data
+    assert "password" in data["error"].lower()
 
 
 def test_news_detail_by_slug_returns_200(client, sample_news):
@@ -173,6 +206,32 @@ def test_news_update_marks_translations_outdated(app, moderator_headers, client,
         ).first()
         assert en_trans is not None
         assert en_trans.translation_status == "outdated"
+
+
+def test_verification_email_does_not_log_token(app, caplog, test_user):
+    """Regression: send_verification_email must not log raw token or usable activation URL."""
+    from app.services.mail_service import send_verification_email
+    user, _ = test_user
+    raw_token = "regression-test-secret-token-xyz"
+    with app.test_request_context("http://testserver/"):
+        with caplog.at_level(logging.INFO, logger="app.services.mail_service"):
+            send_verification_email(user, raw_token)
+    log_text = caplog.text
+    assert raw_token not in log_text
+    assert "/activate/" + raw_token not in log_text
+
+
+def test_password_reset_email_does_not_log_token_or_url(app, caplog, test_user):
+    """Regression: send_password_reset_email must not log raw token or usable reset URL."""
+    from app.services.mail_service import send_password_reset_email
+    user, _ = test_user
+    raw_token = "regression-reset-secret-abc"
+    with app.test_request_context("http://testserver/"):
+        with caplog.at_level(logging.INFO, logger="app.services.mail_service"):
+            send_password_reset_email(user, raw_token)
+    log_text = caplog.text
+    assert raw_token not in log_text
+    assert "reset" in log_text.lower() or "password" in log_text.lower()
 
 
 def test_wiki_update_marks_other_translations_outdated(app, moderator_headers, client):

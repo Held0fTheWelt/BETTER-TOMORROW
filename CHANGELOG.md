@@ -18,11 +18,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **CSV formula injection hardening:** Activity log CSV export uses `csv_safe_cell()` so cells starting with `=`, `+`, `-`, or `@` are prefixed and treated as text in spreadsheets.
 - **Wiki slug uniqueness:** Unique constraint and service validation so slug is unique per language across all wiki pages. Migration 013. Duplicate slug in the same language returns a clear error.
 - **Translation outdated handling:** When source (default-language) news article or wiki translation content is updated, other-language translations are marked outdated and `source_version` is set. Wiki: `upsert_wiki_page_translation` update path now sets `source_version` on the edited translation and marks all other languages for that page outdated (deterministic, regression-tested).
-- **Regression tests:** `tests/test_security_and_correctness.py` for wiki sanitizer, password change, generic user update ignoring password, news slug detail, CSV formula neutralization, security headers, wiki slug uniqueness, translation outdated marking, and wiki update marking other translations outdated.
+- **Regression tests:** `tests/test_security_and_correctness.py` for wiki sanitizer, password change (including missing current_password), generic user update rejecting password fields, news slug detail, CSV formula neutralization, security headers, wiki slug uniqueness, translation outdated marking, wiki update marking other translations outdated, verification/reset email not logging tokens or URLs. `tests/test_config.py`: secret-key required when not TESTING (including empty SECRET_KEY).
 
 ### Changed
 
-- **Password not in generic user update:** Generic `PUT /api/v1/users/<id>` no longer accepts `password` or `current_password`. Password changes only via `PUT /api/v1/users/<id>/password` (self, with current password).
+- **Password not in generic user update:** Generic `PUT /api/v1/users/<id>` rejects requests that include `password` or `current_password` with 400 and a message to use `PUT /api/v1/users/<id>/password`. Password changes only via that dedicated endpoint (self, with current password).
 - **Activation and reset links not logged:** In dev/TESTING mail fallback, verification and password-reset flows log that a link was sent but do not log the URL or token.
 - **Frontend secret:** Frontend requires `SECRET_KEY` unless `FLASK_ENV=development` or `DEV_SECRETS_OK` is set; then a one-off random key is used and a warning is printed.
 
