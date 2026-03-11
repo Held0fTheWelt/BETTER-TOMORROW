@@ -93,6 +93,7 @@ def create_app(config_object=None):
             "img-src 'self' data: https:; "
             "font-src 'self'; "
             "connect-src 'self' https:; "
+            "object-src 'none'; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
             "form-action 'self'"

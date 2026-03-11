@@ -97,13 +97,15 @@ def test_csv_export_neutralizes_formula(client, admin_headers):
 
 
 def test_security_headers_present(client):
-    """Responses include security headers."""
+    """Responses include security headers and CSP is hardened (object-src 'none')."""
     r = client.get("/api/v1/health")
     assert r.status_code == 200
     assert r.headers.get("X-Content-Type-Options") == "nosniff"
     assert r.headers.get("X-Frame-Options") == "DENY"
     assert "Referrer-Policy" in r.headers
+    csp = r.headers.get("Content-Security-Policy", "")
     assert "Content-Security-Policy" in r.headers
+    assert "object-src 'none'" in csp
 
 
 def test_wiki_slug_unique_per_language(app, moderator_headers, client):

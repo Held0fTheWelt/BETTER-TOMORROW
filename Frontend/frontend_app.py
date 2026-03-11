@@ -3,6 +3,7 @@ Serves HTML and static assets only; consumes backend API for data. No database."
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from flask import Flask, request, session, render_template
 
@@ -137,23 +138,37 @@ def manage_wiki():
     return render_template("manage/wiki.html")
 
 
+def _backend_origin():
+    """Origin (scheme + netloc) of BACKEND_API_URL for CSP connect-src in split frontend/backend setups."""
+    parsed = urlparse(BACKEND_API_URL)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return None
+
+
 @app.after_request
 def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    response.headers["Content-Security-Policy"] = (
+    connect_src = ["'self'", "https:"]
+    origin = _backend_origin()
+    if origin and origin not in ("https:", "'self'"):
+        connect_src.append(origin)
+    csp = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self'; "
-        "connect-src 'self' https:; "
+        "connect-src " + " ".join(connect_src) + "; "
+        "object-src 'none'; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
         "form-action 'self'"
     )
+    response.headers["Content-Security-Policy"] = csp
     return response
 
 
