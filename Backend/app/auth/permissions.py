@@ -2,7 +2,7 @@
 
 from functools import wraps
 
-from flask import jsonify
+from flask import current_app, g, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.models import User
@@ -84,3 +84,31 @@ def require_jwt_moderator_or_admin(f):
             return jsonify({"error": "Forbidden"}), 403
         return f(*args, **kwargs)
     return jwt_required()(wrapped)
+
+
+def _is_n8n_service_request() -> bool:
+    """True if request has valid X-Service-Key matching N8N_SERVICE_TOKEN."""
+    token = current_app.config.get("N8N_SERVICE_TOKEN") if current_app else None
+    if not token:
+        return False
+    key = (request.headers.get("X-Service-Key") or "").strip()
+    return key == token and len(key) > 0
+
+
+def require_editor_or_n8n_service(f):
+    """
+    Decorator: allow either (1) valid JWT + moderator/admin, or (2) valid X-Service-Key (n8n).
+    When X-Service-Key is used, set g.is_n8n_service = True so the view can restrict to machine_draft only.
+    """
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if _is_n8n_service_request():
+            g.is_n8n_service = True
+            return f(*args, **kwargs)
+        g.is_n8n_service = False
+        if get_jwt_identity() is None:
+            return jsonify({"error": "Authorization required"}), 401
+        if not current_user_can_write_news():
+            return jsonify({"error": "Forbidden"}), 403
+        return f(*args, **kwargs)
+    return jwt_required(optional=True)(wrapped)

@@ -1,10 +1,11 @@
 """Wiki admin API: pages CRUD and translations (submit-review, approve, publish, auto-translate)."""
-from flask import jsonify, request
+from flask import g, jsonify, request
 
 from app.api.v1 import api_v1_bp
-from app.auth.permissions import get_current_user, require_jwt_moderator_or_admin
+from app.auth.permissions import get_current_user, require_editor_or_n8n_service, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.i18n import normalize_language
+from app.services import log_activity
 from app.services.wiki_service import (
     approve_wiki_translation,
     create_wiki_page,
@@ -107,9 +108,9 @@ def wiki_admin_translations_list(page_id):
 
 @api_v1_bp.route("/wiki-admin/pages/<int:page_id>/translations/<lang>", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_moderator_or_admin
+@require_editor_or_n8n_service
 def wiki_admin_translation_get(page_id, lang):
-    """Get one wiki translation. Requires moderator/admin."""
+    """Get one wiki translation. Requires moderator/admin or n8n X-Service-Key."""
     if not normalize_language(lang):
         return jsonify({"error": "Unsupported language"}), 400
     trans = get_wiki_page_translation(page_id, lang)
@@ -120,19 +121,22 @@ def wiki_admin_translation_get(page_id, lang):
 
 @api_v1_bp.route("/wiki-admin/pages/<int:page_id>/translations/<lang>", methods=["PUT"])
 @limiter.limit("30 per minute")
-@require_jwt_moderator_or_admin
+@require_editor_or_n8n_service
 def wiki_admin_translation_put(page_id, lang):
-    """Create or update wiki page translation. Body: title, slug, content_markdown, translation_status?. Requires moderator/admin."""
+    """Create or update wiki page translation. Body: title, slug, content_markdown, translation_status?. Requires moderator/admin or n8n X-Service-Key (machine_draft only)."""
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
+    translation_status = data.get("translation_status")
+    if getattr(g, "is_n8n_service", False):
+        translation_status = "machine_draft"
     trans, err = upsert_wiki_page_translation(
         page_id,
         lang,
         title=data.get("title"),
         slug=data.get("slug"),
         content_markdown=data.get("content_markdown"),
-        translation_status=data.get("translation_status"),
+        translation_status=translation_status,
     )
     if err:
         status = 404 if err == "Page not found" else 400
@@ -148,6 +152,17 @@ def wiki_admin_translation_submit_review(page_id, lang):
     trans, err = submit_review_wiki_translation(page_id, lang)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="wiki",
+        action="translation_submit_review",
+        status="success",
+        message=f"Wiki translation {page_id}/{lang} submitted for review",
+        route=request.path,
+        method=request.method,
+        target_type="wiki_translation",
+        target_id=f"{page_id}:{lang}",
+    )
     return jsonify(_translation_to_dict(trans)), 200
 
 
@@ -160,6 +175,17 @@ def wiki_admin_translation_approve(page_id, lang):
     trans, err = approve_wiki_translation(page_id, lang, reviewer_id=user.id if user else None)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=user,
+        category="wiki",
+        action="translation_approve",
+        status="success",
+        message=f"Wiki translation {page_id}/{lang} approved",
+        route=request.path,
+        method=request.method,
+        target_type="wiki_translation",
+        target_id=f"{page_id}:{lang}",
+    )
     return jsonify(_translation_to_dict(trans)), 200
 
 
@@ -171,6 +197,17 @@ def wiki_admin_translation_publish(page_id, lang):
     trans, err = publish_wiki_translation(page_id, lang)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="wiki",
+        action="translation_publish",
+        status="success",
+        message=f"Wiki translation {page_id}/{lang} published",
+        route=request.path,
+        method=request.method,
+        target_type="wiki_translation",
+        target_id=f"{page_id}:{lang}",
+    )
     return jsonify(_translation_to_dict(trans)), 200
 
 
@@ -178,7 +215,7 @@ def wiki_admin_translation_publish(page_id, lang):
 @limiter.limit("20 per minute")
 @require_jwt_moderator_or_admin
 def wiki_admin_auto_translate(page_id):
-    """Request machine translation for missing languages. Body: target_language?. Returns current translations. Requires moderator/admin."""
+    """Request machine translation for missing languages. Body: target_language?. Triggers n8n when N8N_WEBHOOK_URL set."""
     data = request.get_json(silent=True) or {}
     target_lang = (data.get("target_language") or "").strip().lower() or None
     from flask import current_app
@@ -189,6 +226,18 @@ def wiki_admin_auto_translate(page_id):
     if target_lang and target_lang not in supported:
         return jsonify({"error": "Unsupported target language"}), 400
     items, _ = list_wiki_page_translations(page_id)
+    missing = [it["language_code"] for it in items if it.get("translation_status") == "missing"]
+    if target_lang:
+        missing = [target_lang] if target_lang in missing else []
+    from app.i18n import get_default_language
+    from app.n8n_trigger import trigger_webhook
+    source_lang = get_default_language()
+    for lang in missing:
+        trigger_webhook("wiki.translation.requested", {
+            "page_id": page_id,
+            "target_language": lang,
+            "source_language": source_lang,
+        })
     return jsonify({
         "message": "Auto-translate requested; translations will be created as machine_draft by automation.",
         "translations": items,

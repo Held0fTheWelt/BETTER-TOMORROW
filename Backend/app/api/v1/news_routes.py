@@ -16,12 +16,12 @@ Write (all require Authorization: Bearer <JWT> and moderator/admin role; 401 if 
 """
 from datetime import datetime, timezone
 
-from flask import jsonify, request
+from flask import g, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
 from app.auth import current_user_can_write_news
-from app.auth.permissions import get_current_user, require_jwt_moderator_or_admin
+from app.auth.permissions import get_current_user, require_editor_or_n8n_service, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.services import log_activity
 from app.i18n import normalize_language
@@ -348,9 +348,9 @@ def news_translations_list(article_id):
 
 @api_v1_bp.route("/news/<int:article_id>/translations/<lang>", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_moderator_or_admin
+@require_editor_or_n8n_service
 def news_translation_get(article_id, lang):
-    """Get one translation by language. Requires moderator/admin."""
+    """Get one translation by language. Requires moderator/admin or n8n X-Service-Key."""
     if not normalize_language(lang):
         return jsonify({"error": "Unsupported language"}), 400
     trans = get_article_translation(article_id, lang)
@@ -361,12 +361,15 @@ def news_translation_get(article_id, lang):
 
 @api_v1_bp.route("/news/<int:article_id>/translations/<lang>", methods=["PUT"])
 @limiter.limit("30 per minute")
-@require_jwt_moderator_or_admin
+@require_editor_or_n8n_service
 def news_translation_put(article_id, lang):
-    """Create or update a translation. Body: title, slug, summary, content, seo_title, seo_description, translation_status. Requires moderator/admin."""
+    """Create or update a translation. Body: title, slug, summary, content, seo_title, seo_description, translation_status. Requires moderator/admin or n8n X-Service-Key (machine_draft only)."""
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
+    translation_status = data.get("translation_status")
+    if getattr(g, "is_n8n_service", False):
+        translation_status = "machine_draft"
     trans, err = upsert_article_translation(
         article_id,
         lang,
@@ -376,7 +379,7 @@ def news_translation_put(article_id, lang):
         content=data.get("content"),
         seo_title=data.get("seo_title"),
         seo_description=data.get("seo_description"),
-        translation_status=data.get("translation_status"),
+        translation_status=translation_status,
     )
     if err:
         status = 404 if err == "News not found" else 400
@@ -396,6 +399,17 @@ def news_translation_submit_review(article_id, lang):
     trans, err = submit_review_article_translation(article_id, lang)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="translation_submit_review",
+        status="success",
+        message=f"News translation {article_id}/{lang} submitted for review",
+        route=request.path,
+        method=request.method,
+        target_type="news_translation",
+        target_id=f"{article_id}:{lang}",
+    )
     return jsonify(_translation_to_dict(trans)), 200
 
 
@@ -409,6 +423,17 @@ def news_translation_approve(article_id, lang):
     trans, err = approve_article_translation(article_id, lang, reviewer_id=reviewer_id)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=user,
+        category="news",
+        action="translation_approve",
+        status="success",
+        message=f"News translation {article_id}/{lang} approved",
+        route=request.path,
+        method=request.method,
+        target_type="news_translation",
+        target_id=f"{article_id}:{lang}",
+    )
     return jsonify(_translation_to_dict(trans)), 200
 
 
@@ -420,6 +445,17 @@ def news_translation_publish(article_id, lang):
     trans, err = publish_article_translation(article_id, lang)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="translation_publish",
+        status="success",
+        message=f"News translation {article_id}/{lang} published",
+        route=request.path,
+        method=request.method,
+        target_type="news_translation",
+        target_id=f"{article_id}:{lang}",
+    )
     return jsonify(_translation_to_dict(trans)), 200
 
 
@@ -429,7 +465,7 @@ def news_translation_publish(article_id, lang):
 def news_auto_translate(article_id):
     """
     Request machine translation for missing languages. Body: target_language (optional, else all missing).
-    Creates machine_draft translations; n8n can create them via API. Returns current translation statuses.
+    Triggers n8n webhook when N8N_WEBHOOK_URL is set; n8n writes back as machine_draft via X-Service-Key.
     """
     data = request.get_json(silent=True) or {}
     target_lang = (data.get("target_language") or "").strip().lower() or None
@@ -441,6 +477,17 @@ def news_auto_translate(article_id):
     if target_lang and target_lang not in supported:
         return jsonify({"error": "Unsupported target language"}), 400
     items, _ = list_article_translations(article_id)
+    missing = [it["language_code"] for it in items if it.get("translation_status") == "missing"]
+    if target_lang:
+        missing = [target_lang] if target_lang in missing else []
+    from app.n8n_trigger import trigger_webhook
+    default_lang = (article.default_language or "").strip() or None
+    for lang in missing:
+        trigger_webhook("news.translation.requested", {
+            "article_id": article_id,
+            "target_language": lang,
+            "source_language": default_lang,
+        })
     return jsonify({
         "message": "Auto-translate requested; translations will be created as machine_draft by automation.",
         "translations": items,

@@ -99,6 +99,11 @@ class Config:
     SUPPORTED_LANGUAGES = ["de", "en"]
     DEFAULT_LANGUAGE = "de"
 
+    # n8n integration: webhook URL for triggering translation jobs; secret for signing payloads; service token for n8n callbacks.
+    N8N_WEBHOOK_URL = os.environ.get("N8N_WEBHOOK_URL", "").strip() or None
+    N8N_WEBHOOK_SECRET = os.environ.get("N8N_WEBHOOK_SECRET", "").strip() or None
+    N8N_SERVICE_TOKEN = os.environ.get("N8N_SERVICE_TOKEN", "").strip() or None
+
 
 class DevelopmentConfig(Config):
     """Dev-only: fallback secrets when DEV_SECRETS_OK is explicitly 1/true/yes/on.
