@@ -15,6 +15,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.17] - 2026-03-12
+
+### Added
+
+- **Area-based access control:** Access to admin/dashboard features now depends on **Role**, **RoleLevel**, and **RoleAreas**. A user may use a feature only if role permits, role_level hierarchy permits, and (when the feature has area assignments) the user has the "all" area or at least one assigned area for that feature.
+- **Area model:** Persistent `areas` table (id, name, slug, description, is_system, timestamps). Default areas seeded: `all`, `community`, `website content`, `rules and system`, `ai integration`, `game`, `wiki`. **`all`** is the special wildcard (global access). Areas manageable by admins; system areas protected where appropriate.
+- **User–area relation:** Many-to-many via `user_areas`. Users can be assigned one or many areas; "all" grants access to all area-scoped features. API exposes `area_ids` and `areas` on user; admin can assign/remove user areas (subject to hierarchy: target must have lower role_level).
+- **Feature/view–area mapping:** Table `feature_areas` (feature_id, area_id). Central registry in `feature_registry.py` with stable feature IDs (e.g. `manage.news`, `manage.users`, `manage.areas`, `manage.feature_areas`). Empty mapping = feature is global; otherwise only users with "all" or one of the assigned areas can access (in addition to role/level).
+- **API:** `GET/POST /api/v1/areas`, `GET/PUT/DELETE /api/v1/areas/<id>`; `GET/PUT /api/v1/users/<id>/areas` (body: `area_ids`); `GET /api/v1/feature-areas`, `GET/PUT /api/v1/feature-areas/<feature_id>`. All admin-only; user areas enforce hierarchy. Auth/me includes `allowed_features` and `area_ids`/`areas`.
+- **Admin frontend:** **Areas** page (list, create, edit, delete); **Feature access** page (list features, edit area assignment per feature); **Users** form: Areas multi-select and "Save areas". Nav links (News, Users, Roles, Areas, Feature access, Wiki, Slogans) shown/hidden by `allowed_features`.
+- **Backend enforcement:** `require_feature(feature_id)` and `user_can_access_feature(user, feature_id)`; area and user-area and feature-area routes protected; user management requires feature `manage.users` and hierarchy.
+- **Tests:** `test_areas_api.py` (areas CRUD, user areas GET/PUT, feature-areas list/put, auth/me allowed_features); conftest calls `ensure_areas_seeded()`; `test_home_returns_200` fixed for current landing content (WORLD OF SHADOWS / BLACKVEIN).
+- **Docs:** `Backend/docs/AREA_ACCESS_CONTROL.md` (area model, defaults, "all", user/feature areas, API, frontend, hierarchy); `ROLE_HIERARCHY.md` updated with reference to area-based access.
+- **Postman:** Collection variables `area_id`; folders **Areas** (List, Get, Create, Update, User Areas Get/Put) and **Feature Areas** (List, Get, Put).
+
+### Changed
+
+- **Permissions:** Role + RoleLevel + RoleAreas; centralized in `feature_registry` and `permissions`. No frontend-only checks for security; backend enforces feature and hierarchy on all admin actions.
+- **Migrations:** 019 adds `areas` and `user_areas` and seeds default areas; 020 adds `feature_areas`. Seed/init-db runs `ensure_areas_seeded()`.
+
+---
+
 ## [0.0.16] - 2026-03-12
 
 ### Added
@@ -27,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Admin role management (frontend):** New **Roles** page under Manage: list roles, create, edit (name, description, default_role_level), delete. Role dropdown in Users is loaded from API (includes QA).
 - **User management (frontend):** Users table shows **Level** (role_level). User form has **Role level** field; Save/Ban/Unban/Delete disabled when target has equal or higher role_level. Clear message when editing is forbidden.
 - **Tests:** Hierarchy tests: admin cannot edit equal/higher level; cannot delete/ban higher; non-SuperAdmin cannot raise own level; SuperAdmin may raise own level. User list includes role_level. Fixtures: super_admin_user (level 100), admin_user_same_level (50).
+- **CLI:** `flask set-user-role-level --username <name>` (bzw. `python -m flask set-user-role-level --username <name>`) setzt für einen bestehenden User das `role_level` (Standard 100 = SuperAdmin). Option `--role-level` für anderen Wert. Kein DEV_SECRETS_OK nötig; nützlich um bestehende Admins zu SuperAdmins zu machen.
 
 ### Changed
 

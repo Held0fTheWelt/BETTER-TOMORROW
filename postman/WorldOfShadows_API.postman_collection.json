@@ -30,7 +30,8 @@
     { "key": "register_password", "value": "PostmanPass1" },
     { "key": "target_user_id", "value": "" },
     { "key": "role_id", "value": "" },
-    { "key": "slogan_id", "value": "" }
+    { "key": "slogan_id", "value": "" },
+    { "key": "area_id", "value": "" }
   ],
   "item": [
     {
@@ -1062,6 +1063,184 @@
               "path": ["api", "v1", "roles", "{{role_id}}"]
             },
             "description": "Delete a role (admin only). 400 if users have this role. Use role_id of a role with no users (e.g. custom role just created)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Areas",
+      "description": "Area CRUD and user-area assignment (0.0.17). Admin only; requires feature manage.areas. Areas: all (wildcard), community, website content, rules and system, ai integration, game, wiki.",
+      "item": [
+        {
+          "name": "Areas List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 (admin with feature) or 401 or 403', function () { pm.expect(pm.response.code).to.be.oneOf([200, 401, 403]); });",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('items');",
+                  "  if (j.items && j.items.length > 0 && !pm.collectionVariables.get('area_id')) {",
+                  "    pm.collectionVariables.set('area_id', String(j.items[0].id));",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "areas"]
+            },
+            "description": "List areas (admin with manage.areas). Sets area_id from first item."
+          }
+        },
+        {
+          "name": "Areas Get",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/{{area_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "areas", "{{area_id}}"]
+            },
+            "description": "Get one area by id (admin with manage.areas)."
+          }
+        },
+        {
+          "name": "Areas Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 or 400 or 403 or 409', function () { pm.expect(pm.response.code).to.be.oneOf([201, 400, 403, 409]); });",
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.id) pm.collectionVariables.set('area_id', String(j.id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"custom_area\",\n  \"slug\": \"custom-area\",\n  \"description\": \"Optional\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "areas"]
+            },
+            "description": "Create area (admin). name and slug required; slug unique. 409 if slug exists."
+          }
+        },
+        {
+          "name": "Areas Update",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Area\",\n  \"description\": \"Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/areas/{{area_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "areas", "{{area_id}}"]
+            },
+            "description": "Update area (admin). System areas (e.g. all) may have restricted edits."
+          }
+        },
+        {
+          "name": "User Areas Get",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{target_user_id}}/areas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{target_user_id}}", "areas"]
+            },
+            "description": "Get areas assigned to a user (admin; target must have lower role_level)."
+          }
+        },
+        {
+          "name": "User Areas Put",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area_ids\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{target_user_id}}/areas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{target_user_id}}", "areas"]
+            },
+            "description": "Set user areas (admin; target must have lower role_level). area_ids: list of area ids; empty = no areas."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feature Areas",
+      "description": "Feature/view to area mapping (0.0.17). Admin only; requires feature manage.feature_areas. GET list all; GET/PUT per feature_id (e.g. manage.news, manage.users).",
+      "item": [
+        {
+          "name": "Feature Areas List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/feature-areas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "feature-areas"]
+            },
+            "description": "List all features and their area_ids (admin with manage.feature_areas)."
+          }
+        },
+        {
+          "name": "Feature Areas Get",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/feature-areas/manage.news",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "feature-areas", "manage.news"]
+            },
+            "description": "Get area_ids for one feature (admin)."
+          }
+        },
+        {
+          "name": "Feature Areas Put",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area_ids\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/feature-areas/manage.news",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "feature-areas", "manage.news"]
+            },
+            "description": "Set areas for a feature (admin). Empty area_ids = global (any area). 400 if feature_id unknown."
           }
         }
       ]

@@ -1,5 +1,7 @@
 # Role hierarchy (0.0.16)
 
+> **Area-based access (0.0.17):** Admin/dashboard feature visibility also depends on **RoleAreas**. See [AREA_ACCESS_CONTROL.md](AREA_ACCESS_CONTROL.md).
+
 ## Overview
 
 - **Roles:** user, qa, moderator, admin (stored in `roles` table; name unique). The role says *what* you can do (e.g. admin = access to admin APIs); it does not imply a numeric authority.
