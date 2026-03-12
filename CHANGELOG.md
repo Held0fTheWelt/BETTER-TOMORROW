@@ -17,6 +17,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.25] - 2026-03-12
+
+### Added
+
+- **Thread merge:** Moderators/admins can merge one thread into another via `POST /api/v1/forum/threads/<source_id>/merge` (body `{"target_thread_id": <int>}`). All posts and subscriptions from the source thread move into the target; the source thread is archived (staff-only) and both threads have `reply_count`, `last_post_at`, and `last_post_id` recalculated. Public thread UI exposes a **Merge…** action in the moderator bar.
+- **Thread split (constrained):** Moderators/admins can split a thread starting from a **top-level** post via `POST /api/v1/forum/threads/<id>/split` (body `{"root_post_id": <int>, "title": "<string>", "category_id": <int?>}`). The root post and its direct replies move into a new thread; deeper reply trees and non-top-level roots are rejected by design to avoid broken reply chains. Both the original and new threads recalculate counters and last-post metadata after the move. Public thread UI adds a **Split to new thread** action on top-level posts for moderators.
+- **Split tests:** `backend/tests/test_forum_api.py` now includes focused tests for split success (new thread creation and post movement), permission enforcement for non-moderators, and the “top-level only” constraint when choosing a root post.
+- **Postman merge/split coverage:** `postman/WorldOfShadows_API.postman_collection.json` extends the Forum → Threads folder with **Merge Thread (Moderator+)** and **Split Thread (Moderator+)** requests using the existing `{{baseUrl}}`/JWT conventions.
+- **Moderation docs for merge/split:** `docs/forum/ModerationWorkflow.md` documents the merge and split workflows, required roles, API endpoints, and the intentional limitations of the current split strategy.
+
+---
+
 ## [0.0.24] - 2026-03-12
 
 ### Added
