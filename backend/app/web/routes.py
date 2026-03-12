@@ -415,7 +415,10 @@ def wiki(slug=None):
 
 @web_bp.route("/community")
 def community():
-    """Community page (placeholder)."""
+    """Community: redirect to forum in administration-tool when FRONTEND_URL is set; else serve placeholder."""
+    frontend_url = current_app.config.get("FRONTEND_URL")
+    if frontend_url:
+        return redirect(frontend_url.rstrip("/") + "/forum", code=302)
     return render_template("community.html")
 
 
