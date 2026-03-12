@@ -295,6 +295,9 @@ def forum_search():
     if not q_raw and not category_slug and not status_filter and not tag_slug:
         # Explicitly handle empty/very broad queries: no filters means no results to avoid huge scans.
         return jsonify({"items": [], "total": 0, "page": page, "per_page": limit}), 200
+    # Truncate overly long search terms to keep LIKE patterns reasonable
+    if len(q_raw) > 200:
+        q_raw = q_raw[:200]
     like_pattern = f"%{q_raw}%" if q_raw else None
     q = ForumThread.query.filter(ForumThread.status != "deleted")
     if like_pattern:
@@ -316,8 +319,8 @@ def forum_search():
             ForumTag, ForumTag.id == ForumThreadTag.tag_id
         ).filter(ForumTag.slug == tag_slug)
 
-    # Optional post content search (best-effort, limited to title-matched threads)
-    if include_content and like_pattern:
+    # Optional post content search (best-effort, limited to reasonable query length)
+    if include_content and like_pattern and len(q_raw) >= 3:
         sub = (
             ForumPost.query.with_entities(ForumPost.thread_id)
             .filter(ForumPost.content.ilike(like_pattern))

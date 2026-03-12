@@ -271,6 +271,36 @@ def test_reports_bulk_status_update(app, client, admin_headers):
     assert data["status"] == "resolved"
 
 
+def test_forum_search_filter_by_tag_and_category(app, client, auth_headers):
+    """Forum search can filter by tag and category, even without a text query."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="search-cat", title="SearchCat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="search-thread", title="Searchable Thread", status="open")
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+
+    # Set tag via API as thread author (testuser)
+    resp_tags = client.put(
+        f"/api/v1/forum/threads/{thread_id}/tags",
+        json={"tags": ["Feature"]},
+        headers=auth_headers,
+    )
+    assert resp_tags.status_code == 200
+    tags_payload = resp_tags.get_json()
+    assert any(t["slug"] == "feature" for t in tags_payload["tags"])
+
+    # Search by category + tag without q
+    resp = client.get("/api/v1/forum/search?category=search-cat&tag=feature&page=1&limit=20")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "search-thread" in slugs
+
+
 # ============= LIKE/UNLIKE TESTS =============
 
 def test_like_requires_visibility(app, client, auth_headers):
