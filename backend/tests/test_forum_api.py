@@ -740,3 +740,221 @@ def test_notifications_list_and_mark_read(app, client, auth_headers):
     items2 = [i for i in resp.get_json()["items"] if i["id"] == nid]
     assert len(items2) == 1
     assert items2[0]["is_read"] is True
+
+
+# ============= MODERATION DASHBOARD =============
+
+
+def test_moderation_metrics_includes_pinned_threads(app, client, moderator_headers):
+    """Moderation metrics returns open_reports, hidden_posts, locked_threads, pinned_threads."""
+    with app.app_context():
+        cat = ForumCategory(slug="mcat", title="M Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="pinned-t", title="Pinned", status="open", is_pinned=True)
+        db.session.add(t)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/moderation/metrics", headers=moderator_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "pinned_threads" in data
+    assert data["pinned_threads"] >= 1
+    assert "open_reports" in data
+    assert "locked_threads" in data
+    assert "hidden_posts" in data
+
+
+def test_moderation_recently_handled(app, client, test_user, moderator_headers):
+    """Recently handled reports endpoint returns reports with status reviewed/resolved/dismissed."""
+    with app.app_context():
+        cat = ForumCategory(slug="rcat", title="R Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="rthread", title="R Thread", status="open")
+        db.session.add(thread)
+        db.session.commit()
+        reporter, _ = test_user
+        report = ForumReport(
+            target_type="thread",
+            target_id=thread.id,
+            reported_by=reporter.id,
+            reason="test",
+            status="resolved",
+            handled_by=User.query.filter_by(username="moderatoruser").first().id,
+            handled_at=datetime.now(timezone.utc),
+        )
+        db.session.add(report)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/moderation/recently-handled?limit=5", headers=moderator_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "items" in data
+    assert len(data["items"]) >= 1
+    assert data["items"][0].get("status") in ("reviewed", "resolved", "dismissed")
+    assert "thread_slug" in data["items"][0]
+
+
+def test_moderation_locked_pinned_hidden_lists(app, client, moderator_headers):
+    """Locked threads, pinned threads, and hidden posts list endpoints return 200 and items array."""
+    with app.app_context():
+        cat = ForumCategory(slug="lcat", title="L Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="locked-t", title="Locked", status="open", is_locked=True)
+        db.session.add(t)
+        db.session.commit()
+
+    for path in ["/api/v1/forum/moderation/locked-threads", "/api/v1/forum/moderation/pinned-threads", "/api/v1/forum/moderation/hidden-posts"]:
+        resp = client.get(path + "?limit=5", headers=moderator_headers)
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "items" in data
+        assert isinstance(data["items"], list)
+
+
+def test_move_thread(app, client, moderator_headers):
+    """Moderator can move a thread to another category."""
+    with app.app_context():
+        c1 = ForumCategory(slug="move-from", title="From", is_active=True, is_private=False)
+        c2 = ForumCategory(slug="move-to", title="To", is_active=True, is_private=False)
+        db.session.add_all([c1, c2])
+        db.session.flush()
+        t = ForumThread(category_id=c1.id, slug="move-thread", title="Move Me", status="open")
+        db.session.add(t)
+        db.session.commit()
+        thread_id, cat2_id = t.id, c2.id
+
+    resp = client.post(
+        "/api/v1/forum/threads/{}/move".format(thread_id),
+        headers=moderator_headers,
+        json={"category_id": cat2_id},
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["category_id"] == cat2_id
+    assert data["slug"] == "move-thread"
+
+    with app.app_context():
+        t = ForumThread.query.get(thread_id)
+        assert t.category_id == cat2_id
+
+
+def test_archive_unarchive_thread(app, client, moderator_headers):
+    """Moderator can archive and unarchive a thread."""
+    with app.app_context():
+        cat = ForumCategory(slug="arch-cat", title="Arch Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="arch-thread", title="Archive Me", status="open")
+        db.session.add(t)
+        db.session.commit()
+        thread_id = t.id
+
+    resp = client.post("/api/v1/forum/threads/{}/archive".format(thread_id), headers=moderator_headers, json={})
+    assert resp.status_code == 200
+    assert resp.get_json().get("status") == "archived"
+
+    resp = client.post("/api/v1/forum/threads/{}/unarchive".format(thread_id), headers=moderator_headers, json={})
+    assert resp.status_code == 200
+    assert resp.get_json().get("status") == "open"
+
+
+def test_notifications_mark_all_read(app, client, auth_headers):
+    """User can mark all notifications as read."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        for _ in range(2):
+            n = Notification(
+                user_id=user.id,
+                event_type="thread_reply",
+                target_type="forum_thread",
+                target_id=1,
+                message="Test",
+                is_read=False,
+            )
+            db.session.add(n)
+        db.session.commit()
+
+    resp = client.put("/api/v1/notifications/read-all", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("updated") >= 2
+
+    resp = client.get("/api/v1/notifications?unread_only=1", headers=auth_headers)
+    assert resp.status_code == 200
+    assert len(resp.get_json().get("items", [])) == 0
+
+
+def test_notifications_list_thread_slug_for_forum_post(app, client, auth_headers):
+    """Notifications list includes thread_slug and target_post_id for forum_post targets."""
+    with app.app_context():
+        cat = ForumCategory(slug="ncat", title="N Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="notif-post-thread", title="T", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        post = ForumPost(thread_id=thread.id, author_id=User.query.filter_by(username="testuser").first().id, content="x", status="visible")
+        db.session.add(post)
+        db.session.commit()
+        post_id = post.id
+        user = User.query.filter_by(username="testuser").first()
+        n = Notification(
+            user_id=user.id,
+            event_type="mention",
+            target_type="forum_post",
+            target_id=post_id,
+            message="Mentioned",
+            is_read=False,
+        )
+        db.session.add(n)
+        db.session.commit()
+        nid = n.id
+
+    resp = client.get("/api/v1/notifications", headers=auth_headers)
+    assert resp.status_code == 200
+    items = [i for i in resp.get_json()["items"] if i["id"] == nid]
+    assert len(items) == 1
+    assert items[0]["thread_slug"] == "notif-post-thread"
+    assert items[0]["target_post_id"] == post_id
+
+
+def test_mention_creates_notification(app, client, moderator_headers, auth_headers):
+    """Post containing @username creates a mention notification for that user (not for author)."""
+    with app.app_context():
+        cat = ForumCategory(slug="mention-cat", title="Mention Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(
+            category_id=cat.id,
+            slug="mention-thread",
+            title="Mention Thread",
+            status="open",
+            author_id=User.query.filter_by(username="moderatoruser").first().id,
+        )
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+        testuser = User.query.filter_by(username="testuser").first()
+        assert testuser
+
+    # Moderator posts with @testuser
+    resp = client.post(
+        "/api/v1/forum/threads/{}/posts".format(thread_id),
+        headers=moderator_headers,
+        json={"content": "Hello @testuser, check this out."},
+        content_type="application/json",
+    )
+    assert resp.status_code == 201
+
+    with app.app_context():
+        mention_notifications = Notification.query.filter_by(
+            event_type="mention",
+            target_type="forum_post",
+            user_id=testuser.id,
+        ).all()
+        assert len(mention_notifications) == 1
+        assert "mentioned you" in (mention_notifications[0].message or "")
