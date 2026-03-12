@@ -38,7 +38,10 @@
     </div>
   </div>
   <div class="hero-visual" aria-hidden="true">
-    <img class="hero-title-image" src="{{ url_for('static', filename='BLACKVEIN-title-1.png') }}" alt="" width="800" height="600">
+    <div class="hero-title-images">
+      <img class="hero-title-image js-lightbox-open" src="{{ url_for('static', filename='BLACKVEIN-title-1.png') }}" alt="BLACKVEIN Artwork 1" width="800" height="600">
+      <img class="hero-title-image hero-title-image--2 js-lightbox-open" src="{{ url_for('static', filename='BLACKVEIN-title-2.png') }}" alt="BLACKVEIN Artwork 2" width="800" height="600">
+    </div>
     <div class="refraction-orb refraction-orb--1"></div>
     <div class="refraction-orb refraction-orb--2"></div>
     <div class="refraction-orb refraction-orb--3"></div>
@@ -160,10 +163,48 @@
     {% endif %}
   </div>
 </nav>
+
+<div class="lightbox" id="hero-lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Bild vergrößert">
+  <div class="lightbox__backdrop" aria-hidden="true"></div>
+  <div class="lightbox__inner">
+    <img class="lightbox__image" src="" alt="">
+    <button class="lightbox__close" type="button" aria-label="Schließen">&times;</button>
+  </div>
+</div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+(function() {
+  var lightbox = document.getElementById("hero-lightbox");
+  var lightboxImg = lightbox && lightbox.querySelector(".lightbox__image");
+  var backdrop = lightbox && lightbox.querySelector(".lightbox__backdrop");
+  var closeBtn = lightbox && lightbox.querySelector(".lightbox__close");
+  function open(src, alt) {
+    if (!lightbox || !lightboxImg) return;
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || "";
+    lightbox.setAttribute("aria-hidden", "false");
+    lightbox.classList.add("is-open");
+    document.body.style.overflow = "hidden";
+  }
+  function close() {
+    if (!lightbox) return;
+    lightbox.setAttribute("aria-hidden", "true");
+    lightbox.classList.remove("is-open");
+    document.body.style.overflow = "";
+  }
+  document.querySelectorAll(".js-lightbox-open").forEach(function(img) {
+    img.addEventListener("click", function() { open(img.src, img.alt); });
+  });
+  if (backdrop) backdrop.addEventListener("click", close);
+  if (closeBtn) closeBtn.addEventListener("click", close);
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && lightbox && lightbox.classList.contains("is-open")) close();
+  });
+})();
+</script>
 <script src="{{ url_for('static', filename='splitting.min.js') }}"></script>
 <script src="{{ url_for('static', filename='matrix-layer.js') }}" defer></script>
 <script src="{{ url_for('static', filename='landing.js') }}" defer></script>
