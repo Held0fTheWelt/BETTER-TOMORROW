@@ -156,9 +156,14 @@ def forum_category_threads(slug):
     end = start + limit
     page_items = visible[start:end]
 
+    items_data = []
+    for t in page_items:
+        d = t.to_dict()
+        d["author_username"] = t.author.username if t.author else None
+        items_data.append(d)
     return jsonify(
         {
-            "items": [t.to_dict() for t in page_items],
+            "items": items_data,
             "total": total_visible,
             "page": page,
             "per_page": limit,
@@ -268,9 +273,14 @@ def forum_search():
     start = (page - 1) * limit
     end = start + limit
     items = visible[start:end]
+    items_data = []
+    for t in items:
+        d = t.to_dict()
+        d["author_username"] = t.author.username if t.author else None
+        items_data.append(d)
     return jsonify(
         {
-            "items": [t.to_dict() for t in items],
+            "items": items_data,
             "total": total,
             "page": page,
             "per_page": limit,
@@ -335,7 +345,11 @@ def forum_thread_create(slug):
         target_type="forum_thread",
         target_id=str(thread.id),
     )
-    return jsonify(thread.to_dict()), 201
+    data = thread.to_dict()
+    data["author_username"] = thread.author.username if thread.author else None
+    if thread.category:
+        data["category"] = thread.category.to_dict()
+    return jsonify(data), 201
 
 
 @api_v1_bp.route("/forum/threads/<int:thread_id>", methods=["PUT"])
@@ -372,7 +386,11 @@ def forum_thread_update(thread_id: int):
         target_type="forum_thread",
         target_id=str(thread.id),
     )
-    return jsonify(thread.to_dict()), 200
+    data = thread.to_dict()
+    data["author_username"] = thread.author.username if thread.author else None
+    if thread.category:
+        data["category"] = thread.category.to_dict()
+    return jsonify(data), 200
 
 
 @api_v1_bp.route("/forum/threads/<int:thread_id>", methods=["DELETE"])

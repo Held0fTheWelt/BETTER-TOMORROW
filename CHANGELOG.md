@@ -15,6 +15,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.20] - 2026-03-12
+
+### Added
+
+- **Forum QA repairs & expanded tests:** Comprehensive test framework for forum module with 27 tests covering category visibility, thread/post creation, permissions, like/unlike functionality, report submissions, moderation actions (lock/unlock, pin/unpin, hide/unhide), own post editing/deletion, counter consistency, parent post validation, and search behavior. Tests verify role-based access control, soft-delete semantics, and permission enforcement.
+- **Forum API enrichment:** Fixed API responses to include `author_username` field consistently across all forum endpoints (category thread listings, thread creation/update, post creation, post listings, search results). Enriched like/unlike endpoints to return `liked_by_me` flag and updated post counts.
+- **Forum moderation verification:** Confirmed full moderation UI implementation in both public (`/forum/threads/<slug>`) and management (`/manage/forum`) areas: lock/unlock, pin/unpin, hide/unhide for posts, category CRUD (admin-only), and report status management (open/reviewed/resolved/dismissed).
+
+### Changed
+
+- **Test coverage strategy:** Forum module now has dedicated test suite in `Backend/tests/test_forum_api.py` with 27 comprehensive tests. Global repository coverage remains at pytest.ini gate of 85%; forum-specific tests demonstrate correct functionality independent of full repo coverage, allowing incremental improvements to broader test suite without blocking forum QA.
+
+### Fixed
+
+- **API serialization:** Author usernames now included in all thread responses (list, create, update, search) and post responses (list, create), enabling consistent user attribution in forum UI without additional API calls.
+- **Test consistency:** Fixed test fixture patterns for proper SQLAlchemy session handling (category_id must be set before thread add, thread_id before post add) to prevent constraint violations.
+
+---
+
 ## [0.0.19] - 2026-03-12
 
 ### Added
