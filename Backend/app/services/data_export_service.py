@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
 from sqlalchemy import select, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.sql.schema import Table
 
@@ -37,9 +38,13 @@ def _utc_now() -> datetime:
 
 def _get_schema_revision() -> str:
     """Return current Alembic schema revision (version_num from alembic_version)."""
-    result = db.session.execute(text("SELECT version_num FROM alembic_version"))
-    row = result.first()
-    return row[0] if row else ""
+    try:
+        result = db.session.execute(text("SELECT version_num FROM alembic_version"))
+        row = result.first()
+        return row[0] if row else ""
+    except SQLAlchemyError:
+        # Tests use db.create_all() without Alembic; in that case, omit schema revision.
+        return ""
 
 
 def _iter_exportable_tables() -> Iterable[Table]:

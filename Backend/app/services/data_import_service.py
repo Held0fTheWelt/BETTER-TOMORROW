@@ -40,9 +40,12 @@ class ImportError(Exception):
 
 
 def _get_schema_revision() -> str:
-    result = db.session.execute(text("SELECT version_num FROM alembic_version"))
-    row = result.first()
-    return row[0] if row else ""
+    try:
+        result = db.session.execute(text("SELECT version_num FROM alembic_version"))
+        row = result.first()
+        return row[0] if row else ""
+    except SQLAlchemyError:
+        return ""
 
 
 def _get_table(name: str) -> Optional[Table]:
