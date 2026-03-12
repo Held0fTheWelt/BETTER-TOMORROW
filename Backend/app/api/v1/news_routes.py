@@ -22,9 +22,10 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.api.v1 import api_v1_bp
 from app.auth import current_user_can_write_news
 from app.auth.permissions import get_current_user, require_editor_or_n8n_service, require_jwt_moderator_or_admin
-from app.extensions import limiter
+from app.extensions import limiter, db
 from app.services import log_activity
 from app.i18n import normalize_language
+from app.models import NewsArticle, ForumThread
 from app.services.news_service import (
     SORT_FIELDS,
     SORT_ORDERS,
@@ -493,3 +494,85 @@ def news_auto_translate(article_id):
         "message": "Auto-translate requested; translations will be created as machine_draft by automation.",
         "translations": items,
     }), 202
+
+
+# --- Discussion Thread Links (Phase 5) ----------------------------------------
+
+
+@api_v1_bp.route("/news/<int:article_id>/discussion-thread", methods=["POST"])
+@limiter.limit("30 per minute")
+@jwt_required()
+def news_link_discussion_thread(article_id: int):
+    """
+    Link a discussion thread to a news article (moderator/admin only).
+    Body: discussion_thread_id.
+    """
+    user = get_current_user()
+    if not user or not current_user_can_write_news(user):
+        return jsonify({"error": "Forbidden"}), 403
+
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return jsonify({"error": "News article not found"}), 404
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+
+    try:
+        thread_id = int(data.get("discussion_thread_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "discussion_thread_id must be an integer"}), 400
+
+    thread = ForumThread.query.get(thread_id)
+    if not thread:
+        return jsonify({"error": "Discussion thread not found"}), 404
+
+    article.discussion_thread_id = thread_id
+    db.session.commit()
+    log_activity(
+        actor=user,
+        category="news",
+        action="discussion_linked",
+        status="success",
+        message=f"Discussion thread {thread_id} linked to article {article_id}",
+        route=request.path,
+        method=request.method,
+        target_type="news_article",
+        target_id=str(article_id),
+    )
+    return jsonify({
+        "id": article.id,
+        "discussion_thread_id": article.discussion_thread_id,
+    }), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/discussion-thread", methods=["DELETE"])
+@limiter.limit("30 per minute")
+@jwt_required()
+def news_unlink_discussion_thread(article_id: int):
+    """
+    Unlink a discussion thread from a news article (moderator/admin only).
+    """
+    user = get_current_user()
+    if not user or not current_user_can_write_news(user):
+        return jsonify({"error": "Forbidden"}), 403
+
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return jsonify({"error": "News article not found"}), 404
+
+    article.discussion_thread_id = None
+    db.session.commit()
+    log_activity(
+        actor=user,
+        category="news",
+        action="discussion_unlinked",
+        status="success",
+        message=f"Discussion thread unlinked from article {article_id}",
+        route=request.path,
+        method=request.method,
+        target_type="news_article",
+        target_id=str(article_id),
+    )
+    return jsonify({"message": "Discussion thread unlinked"}), 200

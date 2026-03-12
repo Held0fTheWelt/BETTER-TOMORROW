@@ -15,6 +15,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.22] - 2026-03-12
+
+### Added
+
+- **Forum MVP strengthened:** 27 passing tests cover category visibility, thread/post creation, permissions, like/unlike, reports, moderation actions (lock/unlock, pin/unpin, hide/unhide), counter consistency, and search behavior.
+- **News management DX hardened:** Local development documentation and refined article management flow.
+- **Discussion integration:** Added `discussion_thread_id` field to NewsArticle and WikiPage models. New endpoints: POST/DELETE `/api/v1/news/<id>/discussion-thread` and `/api/v1/wiki/<id>/discussion-thread` to link/unlink discussion threads with news and wiki content.
+- **Subscription foundation:** New endpoint GET `/api/v1/forum/threads/<id>/subscribers` (moderator/admin only) to list thread subscribers.
+- **Moderation metrics:** Lightweight endpoints GET `/api/v1/forum/moderation/metrics` and GET `/api/v1/forum/moderation/recent-reports` for moderation dashboard.
+- **Notification foundation:** Basic Notification model with `event_type`, `target_type/id`, `is_read` tracking. Endpoint GET `/api/v1/notifications` for user to list their notifications (paginated, can filter unread only).
+- **Postman collection:** Updated with all new endpoints (discussion links, subscriptions, moderation, notifications).
+
+---
+
 ## [0.0.21] - 2026-03-12
 
 ### Added

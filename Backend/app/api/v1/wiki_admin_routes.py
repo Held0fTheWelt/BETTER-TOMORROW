@@ -3,9 +3,10 @@ from flask import g, jsonify, request
 
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import get_current_user, require_editor_or_n8n_service, require_jwt_moderator_or_admin
-from app.extensions import limiter
+from app.extensions import limiter, db
 from app.i18n import normalize_language
 from app.services import log_activity
+from app.models import WikiPage, ForumThread
 from app.services.wiki_service import (
     approve_wiki_translation,
     create_wiki_page,
@@ -242,3 +243,77 @@ def wiki_admin_auto_translate(page_id):
         "message": "Auto-translate requested; translations will be created as machine_draft by automation.",
         "translations": items,
     }), 202
+
+
+# --- Discussion Thread Links (Phase 5) ----------------------------------------
+
+
+@api_v1_bp.route("/wiki/<int:page_id>/discussion-thread", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def wiki_link_discussion_thread(page_id: int):
+    """
+    Link a discussion thread to a wiki page (moderator/admin only).
+    Body: discussion_thread_id.
+    """
+    page = get_wiki_page_by_id(page_id)
+    if not page:
+        return jsonify({"error": "Wiki page not found"}), 404
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+
+    try:
+        thread_id = int(data.get("discussion_thread_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "discussion_thread_id must be an integer"}), 400
+
+    thread = ForumThread.query.get(thread_id)
+    if not thread:
+        return jsonify({"error": "Discussion thread not found"}), 404
+
+    page.discussion_thread_id = thread_id
+    db.session.commit()
+    log_activity(
+        actor=get_current_user(),
+        category="wiki",
+        action="discussion_linked",
+        status="success",
+        message=f"Discussion thread {thread_id} linked to wiki page {page_id}",
+        route=request.path,
+        method=request.method,
+        target_type="wiki_page",
+        target_id=str(page_id),
+    )
+    return jsonify({
+        "id": page.id,
+        "discussion_thread_id": page.discussion_thread_id,
+    }), 200
+
+
+@api_v1_bp.route("/wiki/<int:page_id>/discussion-thread", methods=["DELETE"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def wiki_unlink_discussion_thread(page_id: int):
+    """
+    Unlink a discussion thread from a wiki page (moderator/admin only).
+    """
+    page = get_wiki_page_by_id(page_id)
+    if not page:
+        return jsonify({"error": "Wiki page not found"}), 404
+
+    page.discussion_thread_id = None
+    db.session.commit()
+    log_activity(
+        actor=get_current_user(),
+        category="wiki",
+        action="discussion_unlinked",
+        status="success",
+        message=f"Discussion thread unlinked from wiki page {page_id}",
+        route=request.path,
+        method=request.method,
+        target_type="wiki_page",
+        target_id=str(page_id),
+    )
+    return jsonify({"message": "Discussion thread unlinked"}), 200

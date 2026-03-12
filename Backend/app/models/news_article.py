@@ -23,6 +23,7 @@ class NewsArticle(db.Model):
     default_language = db.Column(db.String(10), nullable=False)
     category = db.Column(db.String(64), nullable=True)
     cover_image = db.Column(db.String(512), nullable=True)
+    discussion_thread_id = db.Column(db.Integer, db.ForeignKey("forum_threads.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
     published_at = db.Column(db.DateTime(timezone=True), nullable=True)

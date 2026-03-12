@@ -19,6 +19,7 @@ class WikiPage(db.Model):
     parent_id = db.Column(db.Integer, db.ForeignKey("wiki_pages.id", ondelete="SET NULL"), nullable=True)
     sort_order = db.Column(db.Integer, nullable=False, default=0)
     is_published = db.Column(db.Boolean, nullable=False, default=True)
+    discussion_thread_id = db.Column(db.Integer, db.ForeignKey("forum_threads.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
 

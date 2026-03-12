@@ -175,6 +175,39 @@
               "path": ["api", "v1", "news", "1"]
             }
           }
+        },
+        {
+          "name": "Link Discussion Thread",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"discussion_thread_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/news/1/discussion-thread",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "news", "1", "discussion-thread"]
+            }
+          }
+        },
+        {
+          "name": "Unlink Discussion Thread",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/news/1/discussion-thread",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "news", "1", "discussion-thread"]
+            }
+          }
         }
       ]
     },
@@ -575,6 +608,169 @@
               }
             }
           ]
+        },
+        {
+          "name": "Subscriptions",
+          "item": [
+            {
+              "name": "Subscribe to Thread",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/forum/threads/1/subscribe",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "forum", "threads", "1", "subscribe"]
+                }
+              }
+            },
+            {
+              "name": "Unsubscribe from Thread",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/forum/threads/1/subscribe",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "forum", "threads", "1", "subscribe"]
+                }
+              }
+            },
+            {
+              "name": "List Thread Subscribers (Moderator+)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/forum/threads/1/subscribers",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "forum", "threads", "1", "subscribers"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Moderation Dashboard",
+          "item": [
+            {
+              "name": "Get Moderation Metrics",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/forum/moderation/metrics",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "forum", "moderation", "metrics"]
+                }
+              }
+            },
+            {
+              "name": "Get Recent Reports for Action",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/forum/moderation/recent-reports?limit=10",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "forum", "moderation", "recent-reports"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wiki",
+      "item": [
+        {
+          "name": "Get Wiki Page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wiki/getting-started?lang=en",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wiki", "getting-started"],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "en"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Link Discussion Thread",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"discussion_thread_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/wiki/1/discussion-thread",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wiki", "1", "discussion-thread"]
+            }
+          }
+        },
+        {
+          "name": "Unlink Discussion Thread",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wiki/1/discussion-thread",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wiki", "1", "discussion-thread"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications?page=1&limit=20&unread_only=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "unread_only",
+                  "value": "false"
+                }
+              ]
+            }
+          }
         }
       ]
     }

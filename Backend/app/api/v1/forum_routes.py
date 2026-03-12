@@ -17,7 +17,7 @@ from app.auth.permissions import (
     get_current_user,
 )
 from app.extensions import limiter, db
-from app.models import ForumCategory, ForumPostLike, ForumThread, ForumPost
+from app.models import ForumCategory, ForumPostLike, ForumThread, ForumPost, ForumReport, ForumThreadSubscription, Notification
 from app.services import log_activity
 from app.services.forum_service import (
     create_category,
@@ -1111,4 +1111,120 @@ def forum_admin_category_delete(category_id: int):
         target_id=str(category_id),
     )
     return jsonify({"message": "Deleted"}), 200
+
+
+# --- Subscriptions (thread subscribers list) --------------------------------
+
+
+@api_v1_bp.route("/forum/threads/<int:thread_id>/subscribers", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_thread_subscribers(thread_id: int):
+    """
+    List subscribers for a thread (moderator/admin only).
+    """
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+    thread = get_thread_by_id(thread_id)
+    if not thread:
+        return jsonify({"error": "Thread not found"}), 404
+
+    subs = ForumThreadSubscription.query.filter_by(thread_id=thread_id).all()
+    items = []
+    for sub in subs:
+        items.append({
+            "id": sub.id,
+            "thread_id": sub.thread_id,
+            "user_id": sub.user_id,
+            "username": sub.user.username if hasattr(sub, 'user') and sub.user else None,
+            "created_at": sub.created_at.isoformat() if sub.created_at else None,
+        })
+    return jsonify({"items": items, "total": len(items)}), 200
+
+
+# --- Moderation Dashboard ---------------------------------------------------
+
+
+@api_v1_bp.route("/forum/moderation/metrics", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_moderation_metrics():
+    """
+    Get lightweight moderation metrics (moderator/admin only).
+    Returns: open_reports count, hidden_posts count, locked_threads count.
+    """
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+
+    open_reports = ForumReport.query.filter_by(status="open").count()
+    hidden_posts = ForumPost.query.filter_by(status="hidden").count()
+    locked_threads = ForumThread.query.filter_by(is_locked=True).count()
+
+    return jsonify({
+        "open_reports": open_reports,
+        "hidden_posts": hidden_posts,
+        "locked_threads": locked_threads,
+    }), 200
+
+
+@api_v1_bp.route("/forum/moderation/recent-reports", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_moderation_recent_reports():
+    """
+    Get recent open reports for moderator action (moderator/admin only).
+    Query: limit (default 10, max 50).
+    """
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+
+    limit = _parse_int(request.args.get("limit"), 10, min_val=1, max_val=50)
+
+    reports = ForumReport.query.filter_by(status="open").order_by(ForumReport.created_at.desc()).limit(limit).all()
+    items = [r.to_dict() for r in reports]
+    return jsonify({"items": items, "total": len(items)}), 200
+
+
+# --- Notifications (Foundation) -----------------------------------------------
+
+
+@api_v1_bp.route("/notifications", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def notifications_list():
+    """
+    List notifications for current user.
+    Query: page, limit, unread_only (boolean).
+    """
+    user, err_resp = _require_user()
+    if err_resp:
+        return err_resp
+
+    page = _parse_int(request.args.get("page"), 1, min_val=1)
+    limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
+    unread_only = request.args.get("unread_only", "").lower() in ("1", "true", "yes")
+
+    q = Notification.query.filter_by(user_id=user.id)
+    if unread_only:
+        q = q.filter_by(is_read=False)
+    q = q.order_by(Notification.created_at.desc())
+
+    total = q.count()
+    page = max(1, page)
+    limit = max(1, min(limit, 100))
+    start = (page - 1) * limit
+    end = start + limit
+
+    items = q.offset(start).limit(limit).all()
+    items_data = [n.to_dict() for n in items]
+
+    return jsonify({
+        "items": items_data,
+        "total": total,
+        "page": page,
+        "per_page": limit,
+    }), 200
 
