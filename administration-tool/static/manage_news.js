@@ -279,6 +279,7 @@
                 setTab(state.currentLang);
                 updateTranslationStatusDisplay();
                 updateDiscussionDisplay();
+                fetchRelatedThreads();
                 ($("manage-news-editor-title") || {}).textContent = "Edit article";
                 var pubBtn = $("manage-news-publish-btn");
                 var unpubBtn = $("manage-news-unpublish-btn");
@@ -340,6 +341,88 @@
             });
     }
 
+    function renderRelatedThreadsList(items) {
+        var listEl = $("manage-news-related-threads-list");
+        if (!listEl) return;
+        while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+        if (!items || items.length === 0) {
+            var empty = document.createTextNode("No related threads.");
+            listEl.appendChild(empty);
+            return;
+        }
+        var ul = document.createElement("ul");
+        ul.className = "manage-related-threads-ul";
+        items.forEach(function(t) {
+            if (!t) return;
+            var li = document.createElement("li");
+            li.className = "manage-related-thread-item";
+            var span = document.createElement("span");
+            span.textContent = (t.title || ("Thread #" + t.id)) + (t.id ? " (#" + t.id + ")" : "");
+            li.appendChild(span);
+            var removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "btn btn-danger btn-sm";
+            removeBtn.textContent = "Remove";
+            removeBtn.setAttribute("aria-label", "Remove related thread");
+            (function(tid) {
+                removeBtn.addEventListener("click", function() {
+                    onRelatedThreadRemove(tid);
+                });
+            }(t.id));
+            li.appendChild(removeBtn);
+            ul.appendChild(li);
+        });
+        listEl.appendChild(ul);
+    }
+
+    function fetchRelatedThreads() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        apiRef("/api/v1/news/" + id + "/related-threads")
+            .then(function(data) {
+                renderRelatedThreadsList(data.items || []);
+            })
+            .catch(function() {
+                var listEl = $("manage-news-related-threads-list");
+                if (listEl) listEl.textContent = "Failed to load related threads.";
+            });
+    }
+
+    function onRelatedThreadAdd() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        var input = $("manage-news-related-thread-id");
+        var raw = input && input.value ? input.value.trim() : "";
+        var tid = parseInt(raw, 10);
+        if (!raw || isNaN(tid) || tid < 1) {
+            showFormError("Enter a valid thread ID (integer \u2265 1).");
+            return;
+        }
+        apiRef("/api/v1/news/" + id + "/related-threads", { method: "POST", body: JSON.stringify({ thread_id: tid }) })
+            .then(function(data) {
+                showFormSuccess("Related thread added.");
+                if (input) input.value = "";
+                renderRelatedThreadsList(data.items || []);
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Add related thread failed.");
+            });
+    }
+
+    function onRelatedThreadRemove(threadId) {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id || !threadId) return;
+        if (!confirm("Remove this related thread?")) return;
+        apiRef("/api/v1/news/" + id + "/related-threads/" + threadId, { method: "DELETE" })
+            .then(function(data) {
+                showFormSuccess("Related thread removed.");
+                renderRelatedThreadsList(data.items || []);
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Remove related thread failed.");
+            });
+    }
+
     function showFormEmpty() {
         state.selectedId = null;
         state.article = null;
@@ -360,6 +443,7 @@
         if (form) form.hidden = true;
         if (empty) empty.hidden = false;
         updateDiscussionDisplay();
+        renderRelatedThreadsList([]);
         ($("manage-news-editor-title") || {}).textContent = "Create / Edit";
     }
 
@@ -630,6 +714,8 @@
         var discussionUnlinkBtn = $("manage-news-discussion-unlink");
         if (discussionLinkBtn) discussionLinkBtn.addEventListener("click", onDiscussionLink);
         if (discussionUnlinkBtn) discussionUnlinkBtn.addEventListener("click", onDiscussionUnlink);
+        var relatedAddBtn = $("manage-news-related-thread-add");
+        if (relatedAddBtn) relatedAddBtn.addEventListener("click", onRelatedThreadAdd);
         if (prevBtn) prevBtn.addEventListener("click", function() {
             if (state.page > 1) { state.page--; fetchList(); }
         });

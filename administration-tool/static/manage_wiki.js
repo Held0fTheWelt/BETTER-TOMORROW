@@ -229,6 +229,88 @@
             });
     }
 
+    function renderWikiRelatedThreadsList(items) {
+        var listEl = $("manage-wiki-related-threads-list");
+        if (!listEl) return;
+        while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+        if (!items || items.length === 0) {
+            listEl.appendChild(document.createTextNode("No related threads."));
+            return;
+        }
+        var ul = document.createElement("ul");
+        ul.className = "manage-related-threads-ul";
+        items.forEach(function(t) {
+            if (!t) return;
+            var li = document.createElement("li");
+            li.className = "manage-related-thread-item";
+            var span = document.createElement("span");
+            span.textContent = (t.title || ("Thread #" + t.id)) + (t.id ? " (#" + t.id + ")" : "");
+            li.appendChild(span);
+            var removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "btn btn-danger btn-sm";
+            removeBtn.textContent = "Remove";
+            removeBtn.setAttribute("aria-label", "Remove related thread");
+            (function(tid) {
+                removeBtn.addEventListener("click", function() {
+                    onWikiRelatedThreadRemove(tid);
+                });
+            }(t.id));
+            li.appendChild(removeBtn);
+            ul.appendChild(li);
+        });
+        listEl.appendChild(ul);
+    }
+
+    function fetchWikiRelatedThreads() {
+        var pageId = state.selectedPageId;
+        if (!pageId) return;
+        apiRef("/api/v1/wiki/" + pageId + "/related-threads")
+            .then(function(data) {
+                renderWikiRelatedThreadsList(data.items || []);
+            })
+            .catch(function() {
+                var listEl = $("manage-wiki-related-threads-list");
+                if (listEl) listEl.textContent = "Failed to load related threads.";
+            });
+    }
+
+    function onWikiRelatedThreadAdd() {
+        var pageId = state.selectedPageId;
+        if (!pageId) return;
+        var input = $("manage-wiki-related-thread-id");
+        var raw = input && input.value ? input.value.trim() : "";
+        var tid = parseInt(raw, 10);
+        if (!raw || isNaN(tid) || tid < 1) {
+            var err = $("manage-wiki-error");
+            if (err) { err.textContent = "Enter a valid thread ID (integer \u2265 1)."; err.hidden = false; }
+            return;
+        }
+        apiRef("/api/v1/wiki/" + pageId + "/related-threads", { method: "POST", body: JSON.stringify({ thread_id: tid }) })
+            .then(function(data) {
+                if (input) input.value = "";
+                renderWikiRelatedThreadsList(data.items || []);
+            })
+            .catch(function(e) {
+                var err = $("manage-wiki-error");
+                if (err) { err.textContent = (typeof e === "object" && e.message ? e.message : "Add related thread failed."); err.hidden = false; }
+            });
+    }
+
+    function onWikiRelatedThreadRemove(threadId) {
+        var pageId = state.selectedPageId;
+        if (!pageId || !threadId) return;
+        if (!confirm("Remove this related thread?")) return;
+        apiRef("/api/v1/wiki/" + pageId + "/related-threads/" + threadId, { method: "DELETE" })
+            .then(function(data) {
+                renderWikiRelatedThreadsList(data.items || []);
+            })
+            .catch(function(e) {
+                var err = $("manage-wiki-error");
+                if (err) { err.textContent = (typeof e === "object" && e.message ? e.message : "Remove related thread failed."); err.hidden = false; }
+            });
+    }
+
     function selectPage(pageId) {
         state.selectedPageId = pageId;
         state.translations = null;
@@ -247,6 +329,7 @@
             if (wrap) wrap.hidden = true;
             if (empty) empty.hidden = false;
             updateWikiDiscussionDisplay();
+            renderWikiRelatedThreadsList([]);
             return;
         }
 
@@ -255,6 +338,7 @@
         var page = state.pages.find(function(p) { return p.id === pageId; });
         ($("manage-wiki-page-title") || {}).textContent = page ? "Page: " + page.key : "Page";
         updateWikiDiscussionDisplay();
+        fetchWikiRelatedThreads();
 
         apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations")
             .then(function(data) {
@@ -456,6 +540,7 @@
         if ($("manage-wiki-new-page")) $("manage-wiki-new-page").addEventListener("click", onNewPage);
         if ($("manage-wiki-discussion-link")) $("manage-wiki-discussion-link").addEventListener("click", onWikiDiscussionLink);
         if ($("manage-wiki-discussion-unlink")) $("manage-wiki-discussion-unlink").addEventListener("click", onWikiDiscussionUnlink);
+        if ($("manage-wiki-related-thread-add")) $("manage-wiki-related-thread-add").addEventListener("click", onWikiRelatedThreadAdd);
 
         document.querySelectorAll("#manage-wiki-lang-tabs .manage-news-tab").forEach(function(tab) {
             tab.addEventListener("click", function() {
