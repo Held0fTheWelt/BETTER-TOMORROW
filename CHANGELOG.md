@@ -17,6 +17,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.24] - 2026-03-12
+
+### Added
+
+- **Forum expansion wave:** Moderation dashboard, notification center polishing, advanced thread moderation (move, archive/unarchive), mentions (@username), focused tests, Postman and docs updates. See entries below as implemented.
+
+---
+
 ## [0.0.23] - 2026-03-12
 
 ### Added
