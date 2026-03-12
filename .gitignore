@@ -1,5 +1,6 @@
 .venv
 .idea
+.report
 .claude
 WorldOfShadows.code-workspace
 instance/
@@ -24,4 +25,4 @@ MODEL_POLICY.md
 QUALITY_TRACKING.md
 Task.md
 FORUM_QA_REPORT_0.0.20.md
-FORUM_QA_COMPLETION_REPORT.md
+.report/FORUM_QA_COMPLETION_REPORT.md
