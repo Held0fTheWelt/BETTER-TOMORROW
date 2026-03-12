@@ -27,6 +27,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Docs/path consistency:** README and changelog use `backend/` and `administration-tool/` consistently. README states remote-first default (PythonAnywhere) for BACKEND_API_URL and local troubleshooting override.
+- **News discussion permission:** `current_user_can_write_news()` is called with no arguments in news link/unlink routes (permissions define it as no-arg).
+
+### Tests
+
+- **Focused tests:** News discussion link/unlink and public response; wiki public discussion link when linked/not linked; forum subscribe/unsubscribe flow; notification creation on reply for subscribers; notifications list and mark-read. New file `backend/tests/test_wiki_public.py`.
 
 ---
 
