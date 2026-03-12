@@ -21,7 +21,7 @@
             <nav class="nav" aria-label="Main">
                 <a href="{{ url_for('news_list') }}?lang={{ current_lang }}" class="nav-link">{{ t.nav_news | default('News') }}</a>
                 <a href="{{ url_for('wiki_index') }}?lang={{ current_lang }}" class="nav-link">{{ t.nav_wiki | default('Wiki') }}</a>
-                <a href="{{ backend_api_url }}/community" class="nav-link">{{ t.nav_community | default('Community') }}</a>
+                <a href="{{ url_for('forum_index') }}" class="nav-link">{{ t.nav_forum | default('Forum') }}</a>
                 <a href="{{ backend_api_url }}/login" class="nav-link">{{ t.nav_login | default('Log in') }}</a>
                 <a href="{{ backend_api_url }}/register" class="nav-link nav-link-cta">{{ t.nav_register | default('Register') }}</a>
                 <a href="{{ backend_api_url }}/dashboard" class="nav-link">{{ t.nav_dashboard | default('Dashboard') }}</a>

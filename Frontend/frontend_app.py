@@ -106,6 +106,26 @@ def wiki_index(slug=None):
     return render_template("wiki_public.html", slug=slug or "wiki")
 
 
+# --- Forum (public; data from backend API) ---
+
+@app.route("/forum")
+def forum_index():
+    """Forum categories list. Data loaded by JS from backend API."""
+    return render_template("forum/index.html")
+
+
+@app.route("/forum/categories/<slug>")
+def forum_category(slug):
+    """Threads in a category. Data loaded by JS from backend API."""
+    return render_template("forum/category.html", category_slug=slug)
+
+
+@app.route("/forum/threads/<slug>")
+def forum_thread(slug):
+    """Thread detail and posts. Data loaded by JS from backend API."""
+    return render_template("forum/thread.html", thread_slug=slug)
+
+
 # --- Management / editorial area (protected by frontend auth; backend enforces roles) ---
 
 @app.route("/manage")

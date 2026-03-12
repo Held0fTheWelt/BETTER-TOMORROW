@@ -27,6 +27,7 @@ from app.services.forum_service import (
     get_thread_by_slug,
     hide_post,
     hide_thread,
+    increment_thread_view,
     like_post,
     list_categories_for_user,
     list_posts_for_thread,
@@ -159,6 +160,7 @@ def forum_thread_detail(slug):
     thread = get_thread_by_slug(slug)
     if not thread or not user_can_view_thread(user, thread):
         return jsonify({"error": "Thread not found"}), 404
+    increment_thread_view(thread)
     data = thread.to_dict()
     if thread.category:
         data["category"] = thread.category.to_dict()
