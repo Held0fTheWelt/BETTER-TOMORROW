@@ -1,5 +1,6 @@
 from app.models.activity_log import ActivityLog
 from app.models.area import Area, user_areas
+from app.models.feature_area import FeatureArea
 from app.models.role import Role
 from app.models.user import User
 from app.models.password_reset_token import PasswordResetToken
@@ -12,6 +13,7 @@ from app.models.site_setting import SiteSetting
 __all__ = [
     "ActivityLog",
     "Area",
+    "FeatureArea",
     "Role",
     "User",
     "user_areas",
