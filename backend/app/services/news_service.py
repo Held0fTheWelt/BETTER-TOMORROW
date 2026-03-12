@@ -20,6 +20,7 @@ from app.i18n import (
     TRANSLATION_STATUSES,
 )
 from app.models import NewsArticle, NewsArticleTranslation
+from app.models.forum import ForumThread
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,13 @@ def _article_to_public_dict(article: NewsArticle, translation: NewsArticleTransl
     else:
         out["author_id"] = None
         out["author_name"] = None
+    # Discussion thread link (null-safe)
+    out["discussion_thread_id"] = article.discussion_thread_id
+    if article.discussion_thread_id:
+        thread = db.session.get(ForumThread, article.discussion_thread_id)
+        out["discussion_thread_slug"] = thread.slug if thread else None
+    else:
+        out["discussion_thread_slug"] = None
     return out
 
 

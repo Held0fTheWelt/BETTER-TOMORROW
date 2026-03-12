@@ -33,9 +33,16 @@
               "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "login"]
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
             }
           }
         },
@@ -45,9 +52,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "me"]
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
             }
           }
         }
@@ -62,9 +76,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/news?page=1&limit=20&sort=published_at&direction=desc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news"],
+              "raw": "{{baseUrl}}/api/v1/news?page=1&limit=20&sort=published_at&direction=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -92,9 +112,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/news/1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news", "1"]
+              "raw": "{{baseUrl}}/api/v1/news/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1"
+              ]
             }
           }
         },
@@ -113,9 +140,15 @@
               "raw": "{\n  \"title\": \"New Article Title\",\n  \"slug\": \"new-article-title\",\n  \"content\": \"Article content here\",\n  \"summary\": \"Brief summary\",\n  \"category\": \"news\",\n  \"cover_image\": \"https://example.com/image.jpg\",\n  \"is_published\": false\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/news",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news"]
+              "raw": "{{baseUrl}}/api/v1/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news"
+              ]
             }
           }
         },
@@ -134,9 +167,16 @@
               "raw": "{\n  \"title\": \"Updated Title\",\n  \"summary\": \"Updated summary\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/news/1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news", "1"]
+              "raw": "{{baseUrl}}/api/v1/news/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1"
+              ]
             }
           }
         },
@@ -146,9 +186,17 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/news/1/publish",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news", "1", "publish"]
+              "raw": "{{baseUrl}}/api/v1/news/1/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "publish"
+              ]
             }
           }
         },
@@ -158,9 +206,17 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/news/1/unpublish",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news", "1", "unpublish"]
+              "raw": "{{baseUrl}}/api/v1/news/1/unpublish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "unpublish"
+              ]
             }
           }
         },
@@ -170,9 +226,16 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/news/1",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news", "1"]
+              "raw": "{{baseUrl}}/api/v1/news/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1"
+              ]
             }
           }
         },
@@ -191,9 +254,17 @@
               "raw": "{\n  \"discussion_thread_id\": 1\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/news/1/discussion-thread",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news", "1", "discussion-thread"]
+              "raw": "{{baseUrl}}/api/v1/news/1/discussion-thread",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "discussion-thread"
+              ]
             }
           }
         },
@@ -203,9 +274,17 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/news/1/discussion-thread",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "news", "1", "discussion-thread"]
+              "raw": "{{baseUrl}}/api/v1/news/1/discussion-thread",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "discussion-thread"
+              ]
             }
           }
         }
@@ -223,9 +302,16 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/categories",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "categories"]
+                  "raw": "{{baseUrl}}/api/v1/forum/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "categories"
+                  ]
                 }
               }
             },
@@ -235,9 +321,17 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/categories/general",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "categories", "general"]
+                  "raw": "{{baseUrl}}/api/v1/forum/categories/general",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "categories",
+                    "general"
+                  ]
                 }
               }
             },
@@ -256,9 +350,16 @@
                   "raw": "{\n  \"name\": \"General Discussion\",\n  \"slug\": \"general\",\n  \"description\": \"General discussion topics\",\n  \"is_visible\": true\n}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/categories",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "categories"]
+                  "raw": "{{baseUrl}}/api/v1/forum/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "categories"
+                  ]
                 }
               }
             }
@@ -273,9 +374,18 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/categories/general/threads?page=1&limit=20",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "categories", "general", "threads"],
+                  "raw": "{{baseUrl}}/api/v1/forum/categories/general/threads?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "categories",
+                    "general",
+                    "threads"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -295,9 +405,17 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1"
+                  ]
                 }
               }
             },
@@ -316,9 +434,16 @@
                   "raw": "{\n  \"category_id\": 1,\n  \"title\": \"Discussion Thread Title\",\n  \"content\": \"Initial post content\"\n}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads"
+                  ]
                 }
               }
             },
@@ -337,9 +462,18 @@
                   "raw": "{}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/lock",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "lock"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/lock",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "lock"
+                  ]
                 }
               }
             },
@@ -358,9 +492,18 @@
                   "raw": "{}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/unlock",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "unlock"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/unlock",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "unlock"
+                  ]
                 }
               }
             },
@@ -379,9 +522,18 @@
                   "raw": "{}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/pin",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "pin"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/pin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "pin"
+                  ]
                 }
               }
             },
@@ -400,9 +552,18 @@
                   "raw": "{}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/unpin",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "unpin"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/unpin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "unpin"
+                  ]
                 }
               }
             }
@@ -417,9 +578,18 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/posts?page=1&limit=20",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "posts"],
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/posts?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "posts"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -448,9 +618,16 @@
                   "raw": "{\n  \"thread_id\": 1,\n  \"content\": \"Reply content here\"\n}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/posts",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "posts"]
+                  "raw": "{{baseUrl}}/api/v1/forum/posts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "posts"
+                  ]
                 }
               }
             },
@@ -469,9 +646,18 @@
                   "raw": "{}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/posts/1/hide",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "posts", "1", "hide"]
+                  "raw": "{{baseUrl}}/api/v1/forum/posts/1/hide",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "posts",
+                    "1",
+                    "hide"
+                  ]
                 }
               }
             },
@@ -490,9 +676,18 @@
                   "raw": "{}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/posts/1/unhide",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "posts", "1", "unhide"]
+                  "raw": "{{baseUrl}}/api/v1/forum/posts/1/unhide",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "posts",
+                    "1",
+                    "unhide"
+                  ]
                 }
               }
             }
@@ -516,9 +711,18 @@
                   "raw": "{}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/posts/1/like",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "posts", "1", "like"]
+                  "raw": "{{baseUrl}}/api/v1/forum/posts/1/like",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "posts",
+                    "1",
+                    "like"
+                  ]
                 }
               }
             },
@@ -528,9 +732,18 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/posts/1/like",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "posts", "1", "like"]
+                  "raw": "{{baseUrl}}/api/v1/forum/posts/1/like",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "posts",
+                    "1",
+                    "like"
+                  ]
                 }
               }
             }
@@ -554,9 +767,16 @@
                   "raw": "{\n  \"post_id\": 1,\n  \"reason\": \"Spam or abuse\",\n  \"comment\": \"This post contains inappropriate content\"\n}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/reports",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "reports"]
+                  "raw": "{{baseUrl}}/api/v1/forum/reports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "reports"
+                  ]
                 }
               }
             },
@@ -566,9 +786,16 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/reports?page=1&limit=20&status=open",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "reports"],
+                  "raw": "{{baseUrl}}/api/v1/forum/reports?page=1&limit=20&status=open",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "reports"
+                  ],
                   "query": [
                     {
                       "key": "page",
@@ -601,9 +828,17 @@
                   "raw": "{\n  \"status\": \"resolved\",\n  \"notes\": \"Post was removed\"\n}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/reports/1",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "reports", "1"]
+                  "raw": "{{baseUrl}}/api/v1/forum/reports/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "reports",
+                    "1"
+                  ]
                 }
               }
             }
@@ -618,9 +853,18 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/subscribe",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "subscribe"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/subscribe",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "subscribe"
+                  ]
                 }
               }
             },
@@ -630,9 +874,18 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/subscribe",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "subscribe"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/subscribe",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "subscribe"
+                  ]
                 }
               }
             },
@@ -642,11 +895,48 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/threads/1/subscribers",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "threads", "1", "subscribers"]
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/subscribers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "subscribers"
+                  ]
                 }
               }
+            },
+            {
+              "name": "Get Subscription Status",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/subscription",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "subscription"
+                  ]
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -659,9 +949,17 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/moderation/metrics",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "moderation", "metrics"]
+                  "raw": "{{baseUrl}}/api/v1/forum/moderation/metrics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "moderation",
+                    "metrics"
+                  ]
                 }
               }
             },
@@ -671,9 +969,17 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/api/v1/forum/moderation/recent-reports?limit=10",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "forum", "moderation", "recent-reports"],
+                  "raw": "{{baseUrl}}/api/v1/forum/moderation/recent-reports?limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "moderation",
+                    "recent-reports"
+                  ],
                   "query": [
                     {
                       "key": "limit",
@@ -696,9 +1002,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/wiki/getting-started?lang=en",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "wiki", "getting-started"],
+              "raw": "{{baseUrl}}/api/v1/wiki/getting-started?lang=en",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wiki",
+                "getting-started"
+              ],
               "query": [
                 {
                   "key": "lang",
@@ -723,9 +1036,17 @@
               "raw": "{\n  \"discussion_thread_id\": 1\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/wiki/1/discussion-thread",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "wiki", "1", "discussion-thread"]
+              "raw": "{{baseUrl}}/api/v1/wiki/1/discussion-thread",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wiki",
+                "1",
+                "discussion-thread"
+              ]
             }
           }
         },
@@ -735,9 +1056,17 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/wiki/1/discussion-thread",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "wiki", "1", "discussion-thread"]
+              "raw": "{{baseUrl}}/api/v1/wiki/1/discussion-thread",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "wiki",
+                "1",
+                "discussion-thread"
+              ]
             }
           }
         }
@@ -752,9 +1081,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/notifications?page=1&limit=20&unread_only=false",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "notifications"],
+              "raw": "{{baseUrl}}/api/v1/notifications?page=1&limit=20&unread_only=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -771,6 +1106,59 @@
               ]
             }
           }
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/1/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "1",
+                "read"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "read-all"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }
