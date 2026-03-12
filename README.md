@@ -149,7 +149,7 @@ docker compose exec backend flask db upgrade
 | SECRET_KEY | Backend | Session/CSRF (required unless DEV_SECRETS_OK=1) |
 | JWT_SECRET_KEY | Backend | JWT signing (required or fallback to SECRET_KEY) |
 | FLASK_APP | Backend | Set to `run:app` |
-| PORT | Backend / Frontend | Backend default 5000, Frontend default 5001 |
+| PORT | Backend / administration-tool | Backend default 5000; administration-tool default 5001 |
 | BACKEND_API_URL | Administration tool | Backend base URL for API and auth (no trailing slash); default in code is remote PythonAnywhere for initial testing |
 | CORS_ORIGINS | Backend | Comma-separated origins for API (e.g. frontend URL) |
 | FRONTEND_URL | Backend | Optional; redirects GET / and GET /news to frontend |

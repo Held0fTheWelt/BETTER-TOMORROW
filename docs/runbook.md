@@ -4,7 +4,7 @@ Das Runbook ist für **Linux (Bash/Terminal)**, **Windows (PowerShell)** und **P
 
 - **Linux:** `export NAME=value`; bei mehrzeiligen Befehlen `\` am Zeilenende.
 - **PowerShell:** Zeilen mit `;` trennen oder ein Befehl pro Zeile; Umgebungsvariablen mit `$env:NAME = "value"`.
-- **PyCharm:** Run Configurations (siehe unten) oder integriertes Terminal mit Working Directory `Backend`; `.env` im Projektroot wird oft automatisch geladen.
+- **PyCharm:** Run Configurations (siehe unten) oder integriertes Terminal mit Working Directory `backend`; `.env` im Projektroot wird oft automatisch geladen.
 
 ---
 
@@ -14,7 +14,7 @@ Das Runbook ist für **Linux (Bash/Terminal)**, **Windows (PowerShell)** und **P
 *Erste Zeile = Kurzform, zweite Zeile = Python -m — pro Aktion nur eine ausführen.*
 
 ```bash
-cd Backend
+cd backend
 pip install -r requirements.txt
 python -m pip install -r requirements.txt
 cp ../.env.example ../.env
@@ -39,7 +39,7 @@ python -m flask seed-dev-user --username admin --password Admin123 --superadmin
 *Erste Zeile = Kurzform, zweite Zeile = Python -m — pro Aktion nur eine ausführen.*
 
 ```powershell
-cd Backend
+cd backend
 pip install -r requirements.txt
 python -m pip install -r requirements.txt
 Copy-Item ..\.env.example ..\.env
@@ -61,16 +61,16 @@ python -m flask seed-dev-user --username admin --password Admin123 --superadmin
 
 **PyCharm (Linux oder Windows):**
 
-- **Working Directory:** Immer `Backend` (Run Configuration oder im Terminal `cd Backend`).
+- **Working Directory:** Immer `backend` (Run Configuration oder im Terminal `cd backend`).
 - **Terminal (Alt+F12):** Eine der Zeilen pro Aktion ausführen (Kurzform oder Python -m):
   ```bash
-  cd Backend
+  cd backend
   python -m pip install -r requirements.txt
   python -m flask init-db
   python -m flask db upgrade
   python -m flask seed-dev-user --username admin --password Admin123 --superadmin
   ```
-- **Run Configurations:** „Flask“ mit Target `init-db` / `run`; Working directory = `$ProjectFileDir$/Backend`; Environment aus `.env` (EnvFile-Plugin oder manuell).
+- **Run Configurations:** „Flask“ mit Target `init-db` / `run`; Working directory = `$ProjectFileDir$/backend`; Environment aus `.env` (EnvFile-Plugin oder manuell).
 
 ---
 
@@ -79,7 +79,7 @@ python -m flask seed-dev-user --username admin --password Admin123 --superadmin
 **Linux (Bash / Terminal):** *Nur eine der drei Zeilen für „Server starten“ ausführen.*
 
 ```bash
-cd Backend
+cd backend
 export FLASK_APP=run:app
 export FLASK_DEBUG=1
 python run.py
@@ -90,7 +90,7 @@ python -m flask run --port 5000
 **Windows (PowerShell):** *Nur eine der drei Zeilen für „Server starten“ ausführen.*
 
 ```powershell
-cd Backend
+cd backend
 $env:FLASK_APP = "run:app"
 $env:FLASK_DEBUG = "1"
 python run.py
@@ -100,15 +100,15 @@ python -m flask run --port 5000
 
 **PyCharm (Linux oder Windows):**
 
-- **Variante A – run.py:** Run Configuration „Python“: Script path = `Backend/run.py` (oder absoluter Pfad zu `run.py`), Working directory = `Backend`. Optional: Environment variables aus `.env` (EnvFile-Plugin oder manuell `FLASK_APP=run:app`, `FLASK_DEBUG=1`). Dann „Run“ (grüner Play).
-- **Variante B – Flask CLI:** Run Configuration „Flask“: App = `run:app`, Optional: Target = leer lassen für `run`, dann Port 5000. Working directory = `Backend`. Oder Target = `run` und Additional options = `--port 5000`.
-- **Terminal in PyCharm:** `cd Backend` dann `python run.py` oder `python -m flask run --port 5000` (mit `FLASK_APP=run:app` und `FLASK_DEBUG=1` in .env oder export).
+- **Variante A – run.py:** Run Configuration „Python“: Script path = `backend/run.py` (oder absoluter Pfad zu `run.py`), Working directory = `backend`. Optional: Environment variables aus `.env` (EnvFile-Plugin oder manuell `FLASK_APP=run:app`, `FLASK_DEBUG=1`). Dann „Run“ (grüner Play).
+- **Variante B – Flask CLI:** Run Configuration „Flask“: App = `run:app`, Optional: Target = leer lassen für `run`, dann Port 5000. Working directory = `backend`. Oder Target = `run` und Additional options = `--port 5000`.
+- **Terminal in PyCharm:** `cd backend` dann `python run.py` oder `python -m flask run --port 5000` (mit `FLASK_APP=run:app` und `FLASK_DEBUG=1` in .env oder export).
 
 Server: http://127.0.0.1:5000
 
 ---
 
-## Further useful commands (Backend)
+## Further useful commands (backend)
 
 | Action | <span style="color:#0a0">**Kurzform**</span> | <span style="color:#00a">**Python -m**</span> |
 |--------|-----------|-----------------------------|
@@ -126,7 +126,7 @@ Server: http://127.0.0.1:5000
 | Tests ausführen | `pytest tests` | `python -m pytest tests` |
 | Tests ohne Coverage | `pytest tests --no-cov` | `python -m pytest tests --no-cov` |
 
-**Hinweis:** Alle Befehle aus dem Backend-Verzeichnis ausführen (`cd Backend`). Unter PowerShell mehrere Befehle mit `;` trennen, z. B. `cd Backend; python -m flask db upgrade`.
+**Hinweis:** Alle Befehle aus dem Backend-Verzeichnis ausführen (`cd backend`). Unter PowerShell mehrere Befehle mit `;` trennen, z. B. `cd backend; python -m flask db upgrade`.
 
 ---
 
@@ -213,7 +213,7 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/pro
 
 ## Wiki API (editorial)
 
-- **GET /api/v1/wiki** — Returns wiki source and rendered HTML. Requires JWT with **moderator** or **admin** role. Response: `{ "content": "<markdown>", "html": "<html or null>" }`. File: `Backend/content/wiki.md`.
+- **GET /api/v1/wiki** — Returns wiki source and rendered HTML. Requires JWT with **moderator** or **admin** role. Response: `{ "content": "<markdown>", "html": "<html or null>" }`. File: `backend/content/wiki.md`.
 - **PUT /api/v1/wiki** — Updates wiki markdown. Requires JWT with moderator or admin. Body: `{ "content": "<markdown string>" }`. Activity is logged when the logging system is used.
 
 ---
@@ -238,6 +238,6 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/pro
 - **SECRET_KEY must be set:** In `.env` set `SECRET_KEY` and `JWT_SECRET_KEY`, or for local dev set `DEV_SECRETS_OK=1`.
 - **CSRF invalid on login:** Login form must include CSRF token (already present in templates).
 - **CORS / "Network error" vom Frontend:** Am Backend (z. B. in den Environment-Variablen der Web-App oder in `.env`) `CORS_ORIGINS` auf die exakte Frontend-Origin setzen. Keine Leerzeichen um Kommas, keine trailing slashes. Beispiele: Frontend lokal → `CORS_ORIGINS=http://127.0.0.1:5001,http://localhost:5001`; Frontend auf PythonAnywhere-Subdomain → `CORS_ORIGINS=https://deine-frontend-app.pythonanywhere.com`. Danach Backend-Web-App neu laden. Siehe `.env.example` (CORS-Abschnitt).
-- **PowerShell: "&&" unknown:** On PowerShell separate commands with `;` (e.g. `cd Backend; python -m flask db upgrade`) or use one command per line.
+- **PowerShell: "&&" unknown:** On PowerShell separate commands with `;` (e.g. `cd backend; python -m flask db upgrade`) or use one command per line.
 - **flask: command not found:** Immer die <span style="color:#00a">**Python -m**</span>-Zeile verwenden (Tabelle „Further useful commands“); aus dem Backend-Verzeichnis ausführen.
 - **401 Unauthorized on API:** Two cases: (1) **Login** (`POST /auth/login`) returns 401 → wrong username or password. (2) **Other API calls** (e.g. `GET /api/v1/users`) return 401 → missing or invalid JWT: first call `POST /auth/login` with JSON `{"username":"...","password":"..."}`, then send the returned `access_token` in the header `Authorization: Bearer <access_token>`. Note: `seed-dev-user` creates a **moderator** user; for admin-only endpoints use `seed-admin-user`, e.g. `python -m flask seed-admin-user --username admin --password Admin1` (with `DEV_SECRETS_OK=1`).
