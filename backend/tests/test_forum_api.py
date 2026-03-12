@@ -963,6 +963,128 @@ def test_thread_merge_merges_subscriptions(app, client, moderator_headers):
         assert user1_id in user_ids
         assert user2_id in user_ids
 
+
+def test_thread_split_creates_new_thread_and_moves_posts(app, client, moderator_headers):
+    """Splitting from a top-level post creates a new thread and moves the root + direct replies."""
+    with app.app_context():
+        cat = ForumCategory(slug="split-cat", title="Split Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        source = ForumThread(category_id=cat.id, slug="split-source", title="SourceThread", status="open")
+        db.session.add(source)
+        db.session.flush()
+        # Top-level root post and its direct reply, plus another independent top-level post.
+        root = ForumPost(thread_id=source.id, author_id=None, content="Root", status="visible")
+        db.session.add(root)
+        db.session.flush()
+        reply = ForumPost(
+            thread_id=source.id,
+            author_id=None,
+            parent_post_id=root.id,
+            content="Reply to root",
+            status="visible",
+        )
+        other = ForumPost(thread_id=source.id, author_id=None, content="Other top-level", status="visible")
+        db.session.add_all([reply, other])
+        db.session.commit()
+        source_id = source.id
+        root_id = root.id
+        other_id = other.id
+
+    resp = client.post(
+        f"/api/v1/forum/threads/{source_id}/split",
+        headers=moderator_headers,
+        json={"root_post_id": root_id, "title": "Split thread"},
+        content_type="application/json",
+    )
+    assert resp.status_code == 201
+    data = resp.get_json()
+    new_thread_id = data["id"]
+    assert new_thread_id != source_id
+    assert data["title"] == "Split thread"
+    assert data["category_id"] == cat.id if "category_id" in data else True  # category stays consistent or is embedded
+
+    with app.app_context():
+        source = ForumThread.query.get(source_id)
+        new_thread = ForumThread.query.get(new_thread_id)
+        assert source is not None and new_thread is not None
+
+        posts_in_source = ForumPost.query.filter_by(thread_id=source_id).all()
+        posts_in_new = ForumPost.query.filter_by(thread_id=new_thread_id).all()
+
+        # Root and its direct reply must be in the new thread; the other top-level post stays in source.
+        source_ids = {p.id for p in posts_in_source}
+        new_ids = {p.id for p in posts_in_new}
+        assert root_id in new_ids
+        assert reply.id in new_ids
+        assert other_id in source_ids
+
+        # Metadata: reply_count is total visible posts - 1; last_post_id is one of the visible posts.
+        assert source.reply_count == max(0, len(posts_in_source) - 1)
+        assert source.last_post_id in source_ids
+        assert new_thread.reply_count == max(0, len(posts_in_new) - 1)
+        assert new_thread.last_post_id in new_ids
+
+
+def test_thread_split_requires_moderator_permissions(app, client, auth_headers):
+    """Non-moderator users cannot split threads."""
+    with app.app_context():
+        cat = ForumCategory(slug="split-cat2", title="Split Cat 2", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="split-source2", title="Source2", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        root = ForumPost(thread_id=thread.id, author_id=None, content="Root", status="visible")
+        db.session.add(root)
+        db.session.commit()
+        thread_id = thread.id
+        root_id = root.id
+
+    resp = client.post(
+        f"/api/v1/forum/threads/{thread_id}/split",
+        headers=auth_headers,
+        json={"root_post_id": root_id, "title": "Split thread"},
+        content_type="application/json",
+    )
+    assert resp.status_code in (401, 403)
+
+
+def test_thread_split_rejects_non_top_level_root_post(app, client, moderator_headers):
+    """Split from a non-top-level post is rejected to avoid broken reply chains."""
+    with app.app_context():
+        cat = ForumCategory(slug="split-cat3", title="Split Cat 3", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="split-source3", title="Source3", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        root = ForumPost(thread_id=thread.id, author_id=None, content="Root", status="visible")
+        db.session.add(root)
+        db.session.flush()
+        child = ForumPost(
+            thread_id=thread.id,
+            author_id=None,
+            parent_post_id=root.id,
+            content="Child",
+            status="visible",
+        )
+        db.session.add(child)
+        db.session.commit()
+        thread_id = thread.id
+        child_id = child.id
+
+    resp = client.post(
+        f"/api/v1/forum/threads/{thread_id}/split",
+        headers=moderator_headers,
+        json={"root_post_id": child_id, "title": "Split child"},
+        content_type="application/json",
+    )
+    assert resp.status_code == 400
+    data = resp.get_json()
+    # Service returns a clear error string; ensure we propagate a meaningful error.
+    assert "top-level" in (data.get("error") or "").lower()
+
 def test_notifications_mark_all_read(app, client, auth_headers):
     """User can mark all notifications as read."""
     with app.app_context():
