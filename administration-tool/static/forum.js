@@ -487,8 +487,20 @@
             pinBtn.className = "btn btn-outline btn-sm forum-mod-pin";
             pinBtn.textContent = thread.is_pinned ? "Unpin" : "Pin";
             pinBtn.dataset.threadId = thread.id;
+            var archBtn = document.createElement("button");
+            archBtn.type = "button";
+            archBtn.className = "btn btn-outline btn-sm forum-mod-archive";
+            archBtn.textContent = thread.status === "archived" ? "Unarchive" : "Archive";
+            archBtn.dataset.threadId = thread.id;
+            var moveBtn = document.createElement("button");
+            moveBtn.type = "button";
+            moveBtn.className = "btn btn-outline btn-sm forum-mod-move";
+            moveBtn.textContent = "Move…";
+            moveBtn.dataset.threadId = thread.id;
             modBar.appendChild(lockBtn);
             modBar.appendChild(pinBtn);
+            modBar.appendChild(archBtn);
+            modBar.appendChild(moveBtn);
             modBar.hidden = false;
             lockBtn.addEventListener("click", function() {
                 var tid = lockBtn.dataset.threadId;
@@ -509,6 +521,78 @@
                     thread.is_pinned = state.thread.is_pinned;
                     pinBtn.textContent = state.thread.is_pinned ? "Unpin" : "Pin";
                 }).catch(function() {}).then(function() { pinBtn.disabled = false; });
+            });
+            archBtn.addEventListener("click", function() {
+                var tid = archBtn.dataset.threadId;
+                if (!tid) return;
+                archBtn.disabled = true;
+                var isArchived = thread.status === "archived";
+                apiPost("threads/" + tid + "/" + (isArchived ? "unarchive" : "archive"), {}).then(function() {
+                    state.thread.status = isArchived ? "open" : "archived";
+                    thread.status = state.thread.status;
+                    archBtn.textContent = state.thread.status === "archived" ? "Unarchive" : "Archive";
+                }).catch(function() {}).then(function() { archBtn.disabled = false; });
+            });
+            moveBtn.addEventListener("click", function() {
+                var tid = moveBtn.dataset.threadId;
+                if (!tid) return;
+                var existing = document.getElementById("forum-move-wrap");
+                if (existing) { existing.remove(); return; }
+                var base = (window.FrontendConfig && window.FrontendConfig.getApiBaseUrl) ? window.FrontendConfig.getApiBaseUrl() : "";
+                var apiAuth = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
+                if (!apiAuth) return;
+                apiAuth((base ? base.replace(/\/$/, "") : "") + "/api/v1/forum/categories").then(function(data) {
+                    var cats = (data && data.items) || [];
+                    var currentId = thread.category_id || (thread.category && thread.category.id);
+                    var wrap = document.createElement("div");
+                    wrap.id = "forum-move-wrap";
+                    wrap.className = "forum-move-wrap";
+                    var label = document.createElement("label");
+                    label.htmlFor = "forum-move-select";
+                    label.textContent = "Move to category: ";
+                    var sel = document.createElement("select");
+                    sel.id = "forum-move-select";
+                    cats.forEach(function(c) {
+                        var opt = document.createElement("option");
+                        opt.value = c.id;
+                        opt.textContent = (c.title || c.slug) + (c.id === currentId ? " (current)" : "");
+                        if (c.id === currentId) opt.disabled = true;
+                        sel.appendChild(opt);
+                    });
+                    var goBtn = document.createElement("button");
+                    goBtn.type = "button";
+                    goBtn.className = "btn btn-primary btn-sm";
+                    goBtn.textContent = "Move";
+                    var cancelBtn = document.createElement("button");
+                    cancelBtn.type = "button";
+                    cancelBtn.className = "btn btn-ghost btn-sm";
+                    cancelBtn.textContent = "Cancel";
+                    wrap.appendChild(label);
+                    wrap.appendChild(sel);
+                    wrap.appendChild(goBtn);
+                    wrap.appendChild(cancelBtn);
+                    modBar.parentNode && modBar.parentNode.insertBefore(wrap, modBar.nextSibling);
+                    cancelBtn.addEventListener("click", function() { wrap.remove(); });
+                    goBtn.addEventListener("click", function() {
+                        var num = parseInt(sel.value, 10);
+                        if (isNaN(num) || num === currentId) return;
+                        goBtn.disabled = true;
+                        apiPost("threads/" + tid + "/move", { category_id: num }).then(function(t) {
+                            state.thread = t;
+                            state.thread.category_id = t.category_id;
+                            if (t.category) state.thread.category = t.category;
+                            thread = state.thread;
+                            var back = document.getElementById("forum-thread-back-category");
+                            var backBottom = document.getElementById("forum-thread-back-category-bottom");
+                            if (state.thread.category && state.thread.category.slug) {
+                                var href = "/forum/categories/" + encodeURIComponent(state.thread.category.slug);
+                                if (back) back.href = href;
+                                if (backBottom) backBottom.href = href;
+                            }
+                            wrap.remove();
+                        }).catch(function() {}).then(function() { goBtn.disabled = false; });
+                    });
+                });
             });
         }
         if (hasToken && window.ManageAuth && window.ManageAuth.getMe) {

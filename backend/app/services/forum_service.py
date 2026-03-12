@@ -364,6 +364,35 @@ def set_thread_featured(thread: ForumThread, featured: bool) -> ForumThread:
     return thread
 
 
+def set_thread_archived(thread: ForumThread) -> ForumThread:
+    """Archive a thread (staff-only visibility, no new posts from regular users)."""
+    thread.status = "archived"
+    thread.updated_at = _utc_now()
+    db.session.commit()
+    return thread
+
+
+def set_thread_unarchived(thread: ForumThread) -> ForumThread:
+    """Restore an archived thread to open."""
+    if thread.status == "archived":
+        thread.status = "open"
+        thread.updated_at = _utc_now()
+        db.session.commit()
+    return thread
+
+
+def move_thread(thread: ForumThread, new_category: ForumCategory) -> Tuple[ForumThread, Optional[str]]:
+    """Move a thread to another category. Returns (thread, error_message)."""
+    if not new_category or not new_category.is_active:
+        return thread, "Target category not found or inactive"
+    if new_category.id == thread.category_id:
+        return thread, None
+    thread.category_id = new_category.id
+    thread.updated_at = _utc_now()
+    db.session.commit()
+    return thread, None
+
+
 def increment_thread_view(thread: ForumThread) -> None:
     thread.view_count = (thread.view_count or 0) + 1
     thread.updated_at = _utc_now()
