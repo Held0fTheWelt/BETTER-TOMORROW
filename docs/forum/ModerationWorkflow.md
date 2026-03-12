@@ -33,6 +33,7 @@ On a thread page, moderators see a mod bar with:
 - **Pin / Unpin** – Pins thread at top of category list.
 - **Archive / Unarchive** – Archives thread (staff-only visibility; no new posts from regular users).
 - **Move…** – Move thread to another category (dropdown, then Move).
+- **Merge…** – Merge the current thread into another thread (by ID or slug).
 
 API:
 
@@ -40,10 +41,51 @@ API:
 - `POST /api/v1/forum/threads/<id>/pin` | `.../unpin`
 - `POST /api/v1/forum/threads/<id>/archive` | `.../unarchive`
 - `POST /api/v1/forum/threads/<id>/move` (body: `{"category_id": <int>}`)
+- `POST /api/v1/forum/threads/<source_id>/merge` (body: `{"target_thread_id": <int>}`)
+
+### Merge workflow
+
+- **Who**: Moderators and admins with permission to moderate **both** the source and target thread categories.
+- **What**: Move all posts and subscriptions from a source thread into a target thread, then archive the source thread so it is staff-only.
+- **How (UI)**:
+  - Open the source thread.
+  - Click **Merge…** in the mod bar.
+  - Enter the target thread **slug** or **ID**.
+  - Confirm the irreversible merge prompt.
+  - You are redirected to the merged target thread.
+- **Safety**:
+  - The source thread is marked `archived` after merge; its URL remains valid for staff but is no longer a live public discussion.
+  - Reply structure is preserved because posts keep their original `parent_post_id`; only `thread_id` changes.
+  - Counters (`reply_count`, `last_post_at`, `last_post_id`) are recalculated for both threads after the merge.
 
 ## Post moderation
 
 - **Hide / Unhide** (per post): `POST /api/v1/forum/posts/<id>/hide` | `.../unhide` (moderator/admin for that category).
+
+## Thread split (public thread page)
+
+Moderators can split off a coherent sub-thread starting from a **top-level** post:
+
+- **Who**: Moderators and admins for the thread’s category.
+- **What**: Take one top-level post and its direct replies and move them into a new thread.
+- **Limitations (by design)**:
+  - You can only split from a **top-level** post (no parent). Attempts to split from a reply are rejected.
+  - Only the root post and its **direct** replies move. Deeper trees are not supported in the current model.
+  - The new thread is created with a moderator-provided title and lives in the original category unless a target category ID is specified (which must also be moderate‑able by the user).
+- **How (UI)**:
+  - On the thread page, each top-level post shows a **“Split to new thread”** action for moderators.
+  - Click “Split to new thread”, confirm the prompt, and provide a new thread title.
+  - The UI calls `POST /api/v1/forum/threads/<thread_id>/split` and redirects to the new thread on success.
+- **API**:
+  - `POST /api/v1/forum/threads/<thread_id>/split`  
+    Body:
+    - `root_post_id` (int, required) – ID of the top-level post to split from.
+    - `title` (string, required) – title for the new thread.
+    - `category_id` (int, optional) – target category; must exist and be moderate‑able by the caller.
+- **Safety**:
+  - Split is refused when `root_post_id` is not a top-level post, to avoid broken reply chains.
+  - Only `thread_id` changes on the moved posts; reply links and IDs remain stable.
+  - Counters and last‑post metadata are recomputed for both the original and new threads after split.
 
 ## Notifications and mentions
 
