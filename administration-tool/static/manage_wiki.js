@@ -255,6 +255,7 @@
         var page = state.pages.find(function(p) { return p.id === pageId; });
         ($("manage-wiki-page-title") || {}).textContent = page ? "Page: " + page.key : "Page";
         updateWikiDiscussionDisplay();
+        fetchWikiRelatedThreads();
 
         apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations")
             .then(function(data) {
@@ -406,6 +407,76 @@
             });
     }
 
+    function fetchWikiRelatedThreads() {
+        var pageId = state.selectedPageId;
+        if (!pageId || !apiRef) return;
+        var listEl = $("manage-wiki-related-threads-list");
+        if (!listEl) return;
+        apiRef("/api/v1/wiki/" + pageId + "/related-threads")
+            .then(function(data) {
+                var items = data.items || [];
+                listEl.textContent = "";
+                if (!items.length) { listEl.textContent = "None."; return; }
+                items.forEach(function(t) {
+                    var li = document.createElement("li");
+                    var label = document.createTextNode(t.slug || ("Thread #" + t.thread_id));
+                    var btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "btn btn-ghost btn-xs";
+                    btn.textContent = "Remove";
+                    btn.addEventListener("click", (function(tid) {
+                        return function() { onWikiRelatedThreadRemove(tid); };
+                    })(t.thread_id));
+                    li.appendChild(label);
+                    li.appendChild(document.createTextNode(" "));
+                    li.appendChild(btn);
+                    listEl.appendChild(li);
+                });
+            })
+            .catch(function(e) {
+                if (listEl) listEl.textContent = "Failed to load related threads.";
+            });
+    }
+
+    function onWikiRelatedThreadAdd() {
+        var pageId = state.selectedPageId;
+        if (!pageId) return;
+        var input = $("manage-wiki-related-thread-id");
+        var raw = input && input.value ? input.value.trim() : "";
+        var tid = parseInt(raw, 10);
+        if (!raw || isNaN(tid) || tid < 1) {
+            var err = $("manage-wiki-error");
+            if (err) { err.textContent = "Enter a valid thread ID (integer \u2265 1)."; err.hidden = false; }
+            return;
+        }
+        apiRef("/api/v1/wiki/" + pageId + "/related-threads", { method: "POST", body: JSON.stringify({ thread_id: tid }) })
+            .then(function() {
+                if (input) input.value = "";
+                return fetchWikiRelatedThreads();
+            })
+            .then(function() {
+                var savedEl = $("manage-wiki-saved");
+                if (savedEl) { savedEl.hidden = false; setTimeout(function() { savedEl.hidden = true; }, 3000); }
+            })
+            .catch(function(e) {
+                var err = $("manage-wiki-error");
+                if (err) { err.textContent = (typeof e === "object" && e.message ? e.message : "Add failed."); err.hidden = false; }
+            });
+    }
+
+    function onWikiRelatedThreadRemove(threadId) {
+        var pageId = state.selectedPageId;
+        if (!pageId || !threadId) return;
+        apiRef("/api/v1/wiki/" + pageId + "/related-threads/" + threadId, { method: "DELETE" })
+            .then(function() {
+                return fetchWikiRelatedThreads();
+            })
+            .catch(function(e) {
+                var err = $("manage-wiki-error");
+                if (err) { err.textContent = (typeof e === "object" && e.message ? e.message : "Remove failed."); err.hidden = false; }
+            });
+    }
+
     function onNewPage() {
         var key = window.prompt("Page key (e.g. index, faq):");
         if (!key || !key.trim()) return;
@@ -456,6 +527,7 @@
         if ($("manage-wiki-new-page")) $("manage-wiki-new-page").addEventListener("click", onNewPage);
         if ($("manage-wiki-discussion-link")) $("manage-wiki-discussion-link").addEventListener("click", onWikiDiscussionLink);
         if ($("manage-wiki-discussion-unlink")) $("manage-wiki-discussion-unlink").addEventListener("click", onWikiDiscussionUnlink);
+        if ($("manage-wiki-related-thread-add")) $("manage-wiki-related-thread-add").addEventListener("click", onWikiRelatedThreadAdd);
 
         document.querySelectorAll("#manage-wiki-lang-tabs .manage-news-tab").forEach(function(tab) {
             tab.addEventListener("click", function() {

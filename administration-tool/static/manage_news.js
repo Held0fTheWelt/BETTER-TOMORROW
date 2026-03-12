@@ -279,6 +279,7 @@
                 setTab(state.currentLang);
                 updateTranslationStatusDisplay();
                 updateDiscussionDisplay();
+                fetchRelatedThreads();
                 ($("manage-news-editor-title") || {}).textContent = "Edit article";
                 var pubBtn = $("manage-news-publish-btn");
                 var unpubBtn = $("manage-news-unpublish-btn");
@@ -297,6 +298,70 @@
         if (slugEl) slugEl.textContent = (state.article && state.article.discussion_thread_slug) ? state.article.discussion_thread_slug : "—";
         if (unlinkBtn) unlinkBtn.hidden = !(state.article && state.article.discussion_thread_id);
         if (threadIdInput) threadIdInput.value = "";
+    }
+
+    function fetchRelatedThreads() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id || !apiRef) return;
+        var listEl = $("manage-news-related-threads-list");
+        if (!listEl) return;
+        apiRef("/api/v1/news/" + id + "/related-threads")
+            .then(function(data) {
+                var items = data.items || [];
+                listEl.textContent = "";
+                if (!items.length) { listEl.textContent = "None."; return; }
+                items.forEach(function(t) {
+                    var li = document.createElement("li");
+                    var label = document.createTextNode(t.slug || ("Thread #" + t.thread_id));
+                    var btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "btn btn-ghost btn-xs";
+                    btn.textContent = "Remove";
+                    btn.addEventListener("click", (function(tid) {
+                        return function() { onRelatedThreadRemove(tid); };
+                    })(t.thread_id));
+                    li.appendChild(label);
+                    li.appendChild(document.createTextNode(" "));
+                    li.appendChild(btn);
+                    listEl.appendChild(li);
+                });
+            })
+            .catch(function(e) {
+                if (listEl) listEl.textContent = "Failed to load related threads.";
+            });
+    }
+
+    function onRelatedThreadAdd() {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        var input = $("manage-news-related-thread-id");
+        var raw = input && input.value ? input.value.trim() : "";
+        var tid = parseInt(raw, 10);
+        if (!raw || isNaN(tid) || tid < 1) {
+            showFormError("Enter a valid thread ID (integer \u2265 1).");
+            return;
+        }
+        apiRef("/api/v1/news/" + id + "/related-threads", { method: "POST", body: JSON.stringify({ thread_id: tid }) })
+            .then(function() {
+                showFormSuccess("Related thread added.");
+                if (input) input.value = "";
+                fetchRelatedThreads();
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Add failed.");
+            });
+    }
+
+    function onRelatedThreadRemove(threadId) {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id || !threadId) return;
+        apiRef("/api/v1/news/" + id + "/related-threads/" + threadId, { method: "DELETE" })
+            .then(function() {
+                fetchRelatedThreads();
+            })
+            .catch(function(e) {
+                showFormError(typeof e === "object" && e.message ? e.message : "Remove failed.");
+            });
     }
 
     function onDiscussionLink() {
@@ -630,6 +695,8 @@
         var discussionUnlinkBtn = $("manage-news-discussion-unlink");
         if (discussionLinkBtn) discussionLinkBtn.addEventListener("click", onDiscussionLink);
         if (discussionUnlinkBtn) discussionUnlinkBtn.addEventListener("click", onDiscussionUnlink);
+        var relatedThreadAddBtn = $("manage-news-related-thread-add");
+        if (relatedThreadAddBtn) relatedThreadAddBtn.addEventListener("click", onRelatedThreadAdd);
         if (prevBtn) prevBtn.addEventListener("click", function() {
             if (state.page > 1) { state.page--; fetchList(); }
         });
