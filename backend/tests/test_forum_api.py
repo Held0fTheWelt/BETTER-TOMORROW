@@ -1271,8 +1271,8 @@ def test_mention_creates_notification(app, client, moderator_headers, auth_heade
         assert "mentioned you" in (mention_notifications[0].message or "")
 
 
-def test_search_deleted_threads_visible_to_moderator(app, client, moderator_headers):
-    """Moderators can see deleted threads in forum search results."""
+def test_search_deleted_threads_hidden_from_moderator(app, client, moderator_headers):
+    """Deleted threads are excluded from search results even for moderators."""
     with app.app_context():
         cat = ForumCategory(slug="del-search-cat", title="Del Search Cat", is_active=True, is_private=False)
         db.session.add(cat)
@@ -1290,7 +1290,7 @@ def test_search_deleted_threads_visible_to_moderator(app, client, moderator_head
     assert resp.status_code == 200
     data = resp.get_json()
     slugs = {t["slug"] for t in data["items"]}
-    assert "deleted-search-thread" in slugs
+    assert "deleted-search-thread" not in slugs
 
 
 # ============= PHASE 3: BOOKMARKED_BY_ME FLAG IN THREAD LIST =============
