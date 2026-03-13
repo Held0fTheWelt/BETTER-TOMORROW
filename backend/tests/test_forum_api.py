@@ -278,7 +278,7 @@ def test_forum_search_filter_by_tag_and_category(app, client, auth_headers):
         cat = ForumCategory(slug="search-cat", title="SearchCat", is_active=True, is_private=False)
         db.session.add(cat)
         db.session.flush()
-        thread = ForumThread(category_id=cat.id, slug="search-thread", title="Searchable Thread", status="open")
+        thread = ForumThread(category_id=cat.id, slug="search-thread", title="Searchable Thread", status="open", author_id=user.id)
         db.session.add(thread)
         db.session.commit()
         thread_id = thread.id
@@ -1072,7 +1072,9 @@ def test_thread_split_creates_new_thread_and_moves_posts(app, client, moderator_
         db.session.commit()
         source_id = source.id
         root_id = root.id
+        reply_id = reply.id
         other_id = other.id
+        cat_id = cat.id
 
     resp = client.post(
         f"/api/v1/forum/threads/{source_id}/split",
@@ -1085,7 +1087,7 @@ def test_thread_split_creates_new_thread_and_moves_posts(app, client, moderator_
     new_thread_id = data["id"]
     assert new_thread_id != source_id
     assert data["title"] == "Split thread"
-    assert data["category_id"] == cat.id if "category_id" in data else True  # category stays consistent or is embedded
+    assert data.get("category_id", cat_id) == cat_id  # category stays consistent or is embedded
 
     with app.app_context():
         source = ForumThread.query.get(source_id)
@@ -1099,7 +1101,7 @@ def test_thread_split_creates_new_thread_and_moves_posts(app, client, moderator_
         source_ids = {p.id for p in posts_in_source}
         new_ids = {p.id for p in posts_in_new}
         assert root_id in new_ids
-        assert reply.id in new_ids
+        assert reply_id in new_ids
         assert other_id in source_ids
 
         # Metadata: reply_count is total visible posts - 1; last_post_id is one of the visible posts.

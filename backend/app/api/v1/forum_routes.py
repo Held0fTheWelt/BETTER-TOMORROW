@@ -166,17 +166,11 @@ def forum_category_threads(slug):
     page = _parse_int(request.args.get("page"), 1, min_val=1)
     limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
 
-    # Get raw threads for the category ...
-    raw_items, _total = list_threads_for_category(cat, page=1, per_page=1000)
-    # ... then apply per-thread visibility rules to avoid leaking hidden/archived/private threads.
-    visible = [t for t in raw_items if user_can_view_thread(user, t)]
-
-    total_visible = len(visible)
-    page = max(1, page)
-    limit = max(1, min(limit, 100))
-    start = (page - 1) * limit
-    end = start + limit
-    page_items = visible[start:end]
+    # Moderators/admins see all statuses (hidden, archived); others get SQL-level filter.
+    is_mod = user is not None and (current_user_is_moderator() or current_user_is_admin())
+    page_items, total = list_threads_for_category(
+        cat, page=page, per_page=limit, include_hidden=is_mod,
+    )
 
     items_data = []
     for t in page_items:
@@ -186,7 +180,7 @@ def forum_category_threads(slug):
     return jsonify(
         {
             "items": items_data,
-            "total": total_visible,
+            "total": total,
             "page": page,
             "per_page": limit,
         }

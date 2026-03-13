@@ -225,10 +225,17 @@ def delete_category(cat: ForumCategory) -> None:
 # --- Thread operations -------------------------------------------------------
 
 
-def list_threads_for_category(category: ForumCategory, page: int = 1, per_page: int = 20) -> Tuple[List[ForumThread], int]:
+def list_threads_for_category(
+    category: ForumCategory,
+    page: int = 1,
+    per_page: int = 20,
+    include_hidden: bool = False,
+) -> Tuple[List[ForumThread], int]:
     q = ForumThread.query.filter_by(category_id=category.id)
-    # Exclude deleted by default
+    # Exclude deleted always; exclude hidden/archived for non-moderators
     q = q.filter(ForumThread.status != "deleted")
+    if not include_hidden:
+        q = q.filter(ForumThread.status.notin_(("hidden", "archived")))
     q = q.order_by(
         ForumThread.is_pinned.desc(),
         ForumThread.last_post_at.desc().nullslast(),
