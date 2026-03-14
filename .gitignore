@@ -19,6 +19,7 @@ temp_tests_backup/
 *.egg-info/
 dist/
 build/
+.worktrees/
 ARCHITECTURE.md
 CLAUDE.md
 MODEL_POLICY.md
