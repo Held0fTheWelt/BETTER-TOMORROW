@@ -328,3 +328,23 @@ def sample_news(app, test_user):
         db.session.refresh(pub2_article)
         db.session.refresh(draft_article)
         return pub1_article, pub2_article, draft_article
+
+
+@pytest.fixture
+def forum_category(app):
+    """Create a default forum category for tests."""
+    with app.app_context():
+        from app.models import ForumCategory
+        cat = ForumCategory.query.filter_by(slug="general").first()
+        if not cat:
+            cat = ForumCategory(
+                slug="general",
+                title="General Discussion",
+                description="General discussion forum",
+                sort_order=0,
+                is_active=True,
+                is_private=False
+            )
+            db.session.add(cat)
+            db.session.commit()
+        return cat
