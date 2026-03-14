@@ -123,7 +123,37 @@
                 "1"
               ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/news/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "news",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": 1,\n  \"title\": \"Game Announcement\",\n  \"slug\": \"game-announcement\",\n  \"summary\": \"New game coming soon\",\n  \"content\": \"Full article content...\",\n  \"author_id\": 5,\n  \"author_name\": \"Editor\",\n  \"is_published\": true,\n  \"published_at\": \"2026-03-14T10:00:00+00:00\",\n  \"created_at\": \"2026-03-14T09:00:00+00:00\",\n  \"discussion\": {\n    \"type\": \"primary\",\n    \"thread_id\": 42,\n    \"thread_slug\": \"game-discussion\",\n    \"thread_title\": \"Let's discuss\",\n    \"category\": \"general\"\n  },\n  \"related_threads\": [\n    {\n      \"id\": 43,\n      \"slug\": \"similar-game\",\n      \"title\": \"Similar Game Discussion\",\n      \"reply_count\": 8,\n      \"author_username\": \"user1\",\n      \"category\": {\n        \"id\": 1,\n        \"slug\": \"general\",\n        \"title\": \"General\"\n      },\n      \"type\": \"related\"\n    }\n  ],\n  \"suggested_threads\": [\n    {\n      \"id\": 44,\n      \"slug\": \"lore-discussion\",\n      \"title\": \"Game Lore Thread\",\n      \"reply_count\": 5,\n      \"author_username\": \"user2\",\n      \"category\": {\n        \"id\": 1,\n        \"slug\": \"general\",\n        \"title\": \"General\"\n      },\n      \"type\": \"suggested\",\n      \"reason\": \"Same category\"\n    }\n  ]\n}"
+            }
+          ]
         },
         {
           "name": "Create News (Moderator+)",
@@ -409,7 +439,43 @@
               ]
             }
           },
-          "response": []
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/news/1/suggested-threads",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "news",
+                    "1",
+                    "suggested-threads"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": 44,\n      \"slug\": \"lore-discussion\",\n      \"title\": \"Game Lore Thread\",\n      \"reply_count\": 5,\n      \"author_username\": \"user2\",\n      \"category\": {\n        \"id\": 1,\n        \"slug\": \"general\",\n        \"title\": \"General\"\n      }\n    }\n  ]\n}"
+            }
+          ]
         }
       ]
     },
@@ -1986,7 +2052,43 @@
                 }
               ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/wiki/getting-started?lang=en",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "wiki",
+                    "getting-started"
+                  ],
+                  "query": [
+                    {
+                      "key": "lang",
+                      "value": "en"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"title\": \"World Lore Guide\",\n  \"slug\": \"world-lore-guide\",\n  \"content_markdown\": \"# Lore\\n\\nDetailed lore content...\",\n  \"html\": \"<h1>Lore</h1>\\n<p>Detailed lore content...</p>\",\n  \"language_code\": \"en\",\n  \"discussion\": {\n    \"type\": \"primary\",\n    \"thread_id\": 50,\n    \"thread_slug\": \"lore-discussion\",\n    \"thread_title\": \"Lore Discussion\",\n    \"category\": \"general\"\n  },\n  \"related_threads\": [\n    {\n      \"id\": 51,\n      \"slug\": \"related-lore\",\n      \"title\": \"Related Lore Thread\",\n      \"reply_count\": 12,\n      \"author_username\": \"user3\",\n      \"category\": {\n        \"id\": 1,\n        \"slug\": \"general\",\n        \"title\": \"General\"\n      },\n      \"type\": \"related\"\n    }\n  ],\n  \"suggested_threads\": [\n    {\n      \"id\": 52,\n      \"slug\": \"category-discussion\",\n      \"title\": \"General Discussion\",\n      \"reply_count\": 20,\n      \"author_username\": \"user4\",\n      \"category\": {\n        \"id\": 1,\n        \"slug\": \"general\",\n        \"title\": \"General\"\n      },\n      \"type\": \"suggested\",\n      \"reason\": \"Same category\"\n    }\n  ]\n}"
+            }
+          ]
         },
         {
           "name": "Link Discussion Thread (Moderator+)",
@@ -2132,7 +2234,43 @@
               ]
             }
           },
-          "response": []
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/wiki/introduction/suggested-threads",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "wiki",
+                    "introduction",
+                    "suggested-threads"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": 52,\n      \"slug\": \"category-discussion\",\n      \"title\": \"General Discussion\",\n      \"reply_count\": 20,\n      \"author_username\": \"user4\",\n      \"category\": {\n        \"id\": 1,\n        \"slug\": \"general\",\n        \"title\": \"General\"\n      }\n    }\n  ]\n}"
+            }
+          ]
         }
       ]
     },

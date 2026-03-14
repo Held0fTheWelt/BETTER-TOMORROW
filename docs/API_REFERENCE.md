@@ -1108,8 +1108,68 @@ Get user's bookmarked threads.
 
 ## News Endpoints
 
+### GET /api/v1/news/<id_or_slug>
+Get a single news article by ID (integer) or slug (string).
+
+**Auth:** Optional (requires JWT for draft articles)
+**Params:**
+- `lang` (optional) — Language code for translation
+
+**Response 200:**
+```json
+{
+  "id": 1,
+  "title": "New Game Announcement",
+  "slug": "new-game-announcement",
+  "summary": "An exciting new game is coming",
+  "content": "Full article content...",
+  "author_id": 5,
+  "author_name": "Editor",
+  "is_published": true,
+  "published_at": "2026-03-14T10:00:00+00:00",
+  "created_at": "2026-03-14T09:00:00+00:00",
+  "discussion": {
+    "type": "primary",
+    "thread_id": 42,
+    "thread_slug": "game-announcement-discussion",
+    "thread_title": "Let's discuss the new game",
+    "category": "general"
+  },
+  "related_threads": [
+    {
+      "id": 43,
+      "slug": "similar-game-thread",
+      "title": "Similar Game Discussion",
+      "reply_count": 8,
+      "author_username": "user1",
+      "category": {"id": 1, "slug": "general", "title": "General"},
+      "type": "related"
+    }
+  ],
+  "suggested_threads": [
+    {
+      "id": 44,
+      "slug": "game-lore-discussion",
+      "title": "Game Lore Thread",
+      "reply_count": 5,
+      "author_username": "user2",
+      "category": {"id": 1, "slug": "general", "title": "General"},
+      "type": "suggested",
+      "reason": "Same category"
+    }
+  ]
+}
+```
+
+**Response 404:** (Article not found or draft without authorization)
+```json
+{"error": "Not found"}
+```
+
+---
+
 ### GET /api/v1/news/<id>/suggested-threads
-Get suggested related threads for an article.
+Get suggested related threads for an article (separate endpoint).
 
 **Auth:** Optional
 **Params:**
@@ -1120,11 +1180,11 @@ Get suggested related threads for an article.
 {
   "items": [
     {
-      "id": 42,
-      "slug": "related-discussion",
-      "title": "Related Discussion",
+      "id": 44,
+      "slug": "game-lore-discussion",
+      "title": "Game Lore Thread",
       "reply_count": 5,
-      "author_username": "user",
+      "author_username": "user2",
       "category": {"id": 1, "slug": "general", "title": "General"}
     }
   ]
@@ -1135,8 +1195,63 @@ Get suggested related threads for an article.
 
 ## Wiki Endpoints
 
+### GET /api/v1/wiki/<slug>
+Get a wiki page by slug with integrated discussion context.
+
+**Auth:** Optional
+**Params:**
+- `lang` (optional) — Language code for translation
+
+**Response 200:**
+```json
+{
+  "title": "World Lore Guide",
+  "slug": "world-lore-guide",
+  "content_markdown": "# Lore\n\nDetailed lore content...",
+  "html": "<h1>Lore</h1>\n<p>Detailed lore content...</p>",
+  "language_code": "en",
+  "discussion": {
+    "type": "primary",
+    "thread_id": 50,
+    "thread_slug": "lore-discussion",
+    "thread_title": "Let's discuss the world lore",
+    "category": "general"
+  },
+  "related_threads": [
+    {
+      "id": 51,
+      "slug": "related-lore-thread",
+      "title": "Related Lore Discussion",
+      "reply_count": 12,
+      "author_username": "user3",
+      "category": {"id": 1, "slug": "general", "title": "General"},
+      "type": "related"
+    }
+  ],
+  "suggested_threads": [
+    {
+      "id": 52,
+      "slug": "category-discussion",
+      "title": "General Discussion",
+      "reply_count": 20,
+      "author_username": "user4",
+      "category": {"id": 1, "slug": "general", "title": "General"},
+      "type": "suggested",
+      "reason": "Same category"
+    }
+  ]
+}
+```
+
+**Response 404:** (Page not found)
+```json
+{"error": "Not found"}
+```
+
+---
+
 ### GET /api/v1/wiki/<slug>/suggested-threads
-Get suggested related threads for a wiki page.
+Get suggested related threads for a wiki page (separate endpoint).
 
 **Auth:** Optional
 **Params:**
@@ -1147,16 +1262,53 @@ Get suggested related threads for a wiki page.
 {
   "items": [
     {
-      "id": 42,
-      "slug": "related-discussion",
-      "title": "Related Discussion",
-      "reply_count": 5,
-      "author_username": "user",
+      "id": 52,
+      "slug": "category-discussion",
+      "title": "General Discussion",
+      "reply_count": 20,
+      "author_username": "user4",
       "category": {"id": 1, "slug": "general", "title": "General"}
     }
   ]
 }
 ```
+
+---
+
+## Discussion Context Overview
+
+### Types of Thread Links in News/Wiki
+
+When retrieving a news article or wiki page, you can see three distinct types of forum thread links:
+
+#### 1. Primary Discussion (`type: "primary"`)
+- One discussion thread per article/page, representing the main discussion space
+- Set by editors via `POST /api/v1/news/<id>/discussion-thread` or `POST /api/v1/wiki/<slug>/discussion-thread`
+- Included in the response as a single `discussion` object (or `null`)
+- Represents the canonical conversation space for that content
+
+#### 2. Related Threads (`type: "related"`)
+- Multiple manually-curated threads linked by editors
+- Set via `POST /api/v1/news/<id>/related-threads` or `POST /api/v1/wiki/<slug>/related-threads`
+- Included in the response as an array `related_threads`
+- Represent topically-connected discussions chosen explicitly by editors
+- Can be removed by editors via DELETE endpoints
+
+#### 3. Suggested Threads (`type: "suggested"`)
+- Automatically generated suggestions based on category matching
+- Computed deterministically without manual curation
+- Included in the response as an array `suggested_threads`
+- Each suggestion includes a `reason` field explaining the match (e.g., "Same category")
+- Excludes duplicates with primary discussion and manually-linked related threads
+- Limits to 5 per content item by default (max 10)
+
+### Auto-Suggestion Strategy
+
+Automatic suggestions use these signals:
+- **Primary ranking:** Shared category with the content
+- **Secondary ranking:** Recent activity (post/reply count, last activity timestamp)
+- **Visibility:** Only public (non-deleted, non-hidden, non-archived) threads
+- **Deduplication:** Excludes primary discussion and manually linked related threads
 
 ---
 

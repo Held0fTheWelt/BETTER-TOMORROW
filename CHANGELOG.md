@@ -17,6 +17,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.33] - 2026-03-15
+
+### Narrow Follow-up: News/Wiki Auto-Suggestions & Documentation (Phase 6)
+
+#### Auto-Suggestions Feature (Phases 2 & 4)
+- **News auto-suggestions:** `GET /api/v1/news/<id>/suggested-threads` returns forum threads from the same category
+  - Automatically ranked by recency and activity
+  - Distinct from manually-linked related threads
+  - Excludes duplicates and inaccessible threads
+  - Limited to 10 per article
+
+- **Wiki auto-suggestions:** `GET /api/v1/wiki/<slug>/suggested-threads` returns forum threads using the same strategy
+  - Category-based deterministic ranking
+  - Excludes manually-linked threads and duplicates
+  - Limited to 10 per page
+
+#### Contextual Discussion Enrichment
+- **GET /api/v1/news/<id_or_slug>** now returns:
+  - `discussion` — Primary discussion thread (single object with `type: "primary"`)
+  - `related_threads` — Manually-curated related threads (array with `type: "related"`)
+  - `suggested_threads` — Auto-suggested threads (array with `type: "suggested"` and `reason`)
+
+- **GET /api/v1/wiki/<slug>** now returns same structure:
+  - `discussion` — Primary discussion thread
+  - `related_threads` — Manually-curated related threads
+  - `suggested_threads` — Auto-suggested threads with reason label
+
+#### Distinction Between Thread Types
+- **Primary:** Set by editors, represents canonical discussion space
+- **Related:** Manually curated by editors for topically-connected discussions
+- **Suggested:** Automatically generated based on category matching
+
+#### Documentation Updates
+- **API_REFERENCE.md:** Complete documentation of News and Wiki endpoints with example responses showing discussion, related_threads, and suggested_threads fields
+- **New section:** "Discussion Context Overview" explaining three types of thread links and auto-suggestion strategy
+- **Postman collection:** Updated with contextual response examples
+
+#### Test Coverage (Phase 5)
+- News auto-suggestion logic verified with comprehensive test suite
+- Wiki auto-suggestion integration confirmed
+- Visibility filtering and deduplication tested
+- Deterministic ranking behavior validated
+
+#### Limitations
+- Suggestions ranked by category only; no tag-based or title-similarity ranking in this phase
+- Maximum 10 suggestions per content item
+- Suggestions exclude archived threads per visibility rules
+
+### Summary
+Phase 6 documents and completes the narrow News/Wiki auto-suggestions pass begun in Phases 2-5. All features working end-to-end with clear API documentation, example responses, and distinction between manual links and automatic suggestions.
+
+---
+
 ## [0.0.32] - 2026-03-14
 
 ### Forum Expansion Wave — Phase 5: Performance & Regression Testing
