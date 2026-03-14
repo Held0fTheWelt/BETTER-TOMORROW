@@ -220,6 +220,12 @@ def manage_forum():
     return render_template("manage/forum.html")
 
 
+@app.route("/manage/analytics")
+def manage_analytics():
+    """Community analytics dashboard."""
+    return render_template("manage_analytics.html")
+
+
 def _backend_origin():
     """Origin (scheme + netloc) of BACKEND_API_URL for CSP connect-src in split frontend/backend setups."""
     parsed = urlparse(BACKEND_API_URL)

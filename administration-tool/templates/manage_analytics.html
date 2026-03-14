@@ -1,0 +1,207 @@
+{% extends "base_manage.html" %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="manage-container">
+    <header class="manage-header">
+        <h1>Community Analytics Dashboard</h1>
+        <p class="subtitle">Community health metrics and insights</p>
+    </header>
+
+    <!-- Date Range Picker -->
+    <div class="analytics-controls">
+        <div class="date-range-picker">
+            <label for="date_from">From:</label>
+            <input type="date" id="date_from" class="date-input">
+
+            <label for="date_to">To:</label>
+            <input type="date" id="date_to" class="date-input">
+
+            <div class="preset-buttons">
+                <button class="preset-btn" data-range="7d">Last 7 Days</button>
+                <button class="preset-btn" data-range="30d">Last 30 Days</button>
+                <button class="preset-btn" data-range="90d">Last 90 Days</button>
+            </div>
+
+            <button id="apply_filters" class="btn btn-primary">Apply</button>
+            <button id="reset_filters" class="btn btn-secondary">Reset</button>
+        </div>
+
+        <div class="loading-indicator" id="loading" style="display: none;">
+            <span class="spinner"></span> Loading analytics...
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <section class="analytics-section">
+        <h2>Summary</h2>
+        <div class="summary-cards">
+            <div class="card">
+                <div class="card-label">Active Now</div>
+                <div class="card-value" id="active_now">-</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Total Users</div>
+                <div class="card-value" id="total_users">-</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Threads Created</div>
+                <div class="card-value" id="threads_created">-</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Posts Created</div>
+                <div class="card-value" id="posts_created">-</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Open Reports</div>
+                <div class="card-value alert" id="open_reports">-</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Avg Resolution (days)</div>
+                <div class="card-value" id="avg_resolution">-</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Metric Tabs -->
+    <section class="analytics-section">
+        <div class="metric-tabs">
+            <button class="metric-tab active" data-metric="timeline">Timeline</button>
+            <button class="metric-tab" data-metric="users">Users</button>
+            <button class="metric-tab" data-metric="content">Content</button>
+            <button class="metric-tab" data-metric="moderation">Moderation</button>
+        </div>
+
+        <!-- Timeline View -->
+        <div class="metric-view active" id="timeline-view">
+            <h3>Daily Activity</h3>
+            <div class="chart-container">
+                <canvas id="timeline-chart"></canvas>
+            </div>
+            <div class="chart-legend">
+                <span class="legend-item"><span class="legend-color threads"></span> Threads</span>
+                <span class="legend-item"><span class="legend-color posts"></span> Posts</span>
+                <span class="legend-item"><span class="legend-color reports"></span> Reports</span>
+                <span class="legend-item"><span class="legend-color actions"></span> Moderation Actions</span>
+            </div>
+        </div>
+
+        <!-- Users View -->
+        <div class="metric-view" id="users-view">
+            <h3>Top Contributors</h3>
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Threads</th>
+                        <th>Posts</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="contributors-table-body">
+                    <tr><td colspan="4" class="no-data">Loading...</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 40px;">User Distribution by Role</h3>
+            <div class="role-distribution">
+                <div id="role-dist-container"></div>
+            </div>
+        </div>
+
+        <!-- Content View -->
+        <div class="metric-view" id="content-view">
+            <h3>Popular Tags</h3>
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>Tag</th>
+                        <th>Thread Count</th>
+                    </tr>
+                </thead>
+                <tbody id="tags-table-body">
+                    <tr><td colspan="2" class="no-data">Loading...</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 40px;">Trending Threads</h3>
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Replies</th>
+                        <th>Views</th>
+                        <th>Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody id="threads-table-body">
+                    <tr><td colspan="5" class="no-data">Loading...</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 40px;">Content Freshness</h3>
+            <div class="freshness-bars">
+                <div class="freshness-item">
+                    <label>New (< 7 days)</label>
+                    <div class="bar-container">
+                        <div class="bar new" id="freshness-new"></div>
+                    </div>
+                    <span class="bar-value" id="freshness-new-value">0</span>
+                </div>
+                <div class="freshness-item">
+                    <label>Recent (7-30 days)</label>
+                    <div class="bar-container">
+                        <div class="bar recent" id="freshness-recent"></div>
+                    </div>
+                    <span class="bar-value" id="freshness-recent-value">0</span>
+                </div>
+                <div class="freshness-item">
+                    <label>Old (> 30 days)</label>
+                    <div class="bar-container">
+                        <div class="bar old" id="freshness-old"></div>
+                    </div>
+                    <span class="bar-value" id="freshness-old-value">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Moderation View -->
+        <div class="metric-view" id="moderation-view">
+            <h3>Report Queue Status</h3>
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Count</th>
+                    </tr>
+                </thead>
+                <tbody id="queue-status-body">
+                    <tr><td colspan="2" class="no-data">Loading...</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 40px;">Moderation Actions (Last 30 Days)</h3>
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Count</th>
+                    </tr>
+                </thead>
+                <tbody id="actions-body">
+                    <tr><td colspan="2" class="no-data">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Error Message -->
+    <div class="error-message" id="error_message" style="display: none;"></div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage_analytics.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="{{ url_for('static', filename='manage_analytics.js') }}"></script>
+{% endblock %}
