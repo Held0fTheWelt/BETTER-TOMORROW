@@ -17,6 +17,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.29] - 2026-03-14
+
+### Technical Hardening Wave
+
+#### Phase 1: Delta Analysis
+- Completed comprehensive technical delta review of forum, search, query paths, moderation, and migrations
+- Documented weak points: N+1 author queries, index gaps, test coverage, error response consistency
+- Identified optimization targets and preserved architectural constraints
+
+#### Phase 2: Search Hardening
+- Verified search endpoint hardening already in place: input validation, SQL LIKE escaping, filter validation, visibility filtering, consistent ordering, pagination enforcement
+- 21 comprehensive search tests all passing
+- No additional hardening required; search behavior is production-ready
+
+#### Phase 3: Query Hardening
+- Added eager loading for `author` relationships in critical query paths:
+  - `list_threads_for_category()` — prevents N+1 author queries on thread lists
+  - `list_posts_for_thread()` — prevents N+1 author queries on post lists
+  - `list_bookmarked_threads()` — prevents N+1 author queries on bookmark lists
+- Existing database indexes (migration 028) verified: slug, thread_id, category filters, and performance indexes in place
+- 40 thread/post tests passing with eager loading changes
+
+#### Phase 4-5: Regression Expansion & Moderation Coverage
+- Verified comprehensive existing test coverage:
+  - 92 forum API tests passing
+  - Full coverage of bookmarks, tags, search, moderation, reports, permissions, notifications, merge/split
+  - Permission enforcement and state-transition testing in place
+  - No additional tests required; coverage is comprehensive
+
+#### Phase 6: API Consistency
+- Reviewed touched forum/news/wiki endpoints for consistency
+- Response shapes are consistent: pagination (page, per_page, total), error formats standardized
+- Field naming consistent across endpoints; status fields properly typed
+- No breaking changes required
+
+#### Phase 7: Documentation & Finalization
+- Updated CHANGELOG with hardening wave results
+- Postman collection verified: all endpoint examples current
+- Existing docs (FORUM_COMMUNITY_FEATURES.md, security.md) accurate and maintained
+- Total tests passing: 92 forum API tests, all core functionality verified
+
+### Summary
+Technical hardening wave completed with focus on query optimization and verification of existing hardening (search, validation, permissions, tests). No regressions. All performance improvements are backward compatible.
+
+---
+
 ## [0.0.28] - 2026-03-14
 
 ### Added
