@@ -66,7 +66,7 @@ def wiki_page_get(slug):
             {**t, "type": "related"} for t in related
         ]
 
-    # Auto-suggested threads (distinct from manually linked, with reason)
+    # Auto-suggested threads (distinct from manually linked, with grounded reason)
     suggested = get_suggested_threads_for_wiki_page(page.id, limit=5)
     manual_ids = {t["id"] for t in (related or [])}
     if page.discussion_thread_id:
@@ -74,7 +74,7 @@ def wiki_page_get(slug):
     unique_suggested = [t for t in suggested if t.get("id") not in manual_ids]
     if unique_suggested:
         payload["suggested_threads"] = [
-            {**t, "type": "suggested", "reason": "Same category"} for t in unique_suggested
+            {**t, "type": "suggested"} for t in unique_suggested
         ]
 
     return jsonify(payload), 200
@@ -83,7 +83,23 @@ def wiki_page_get(slug):
 @api_v1_bp.route("/wiki/<int:page_id>/suggested-threads", methods=["GET"])
 @limiter.limit("60 per minute")
 def wiki_suggested_threads_get(page_id: int):
-    """Get auto-suggested forum threads for a wiki page (endpoint parity with News)."""
+    """Get auto-suggested forum threads for a wiki page.
+
+    Suggestions are ranked deterministically by:
+    1. Tag matches (from the primary discussion thread)
+    2. Recent activity (last_post_at DESC, as tie-breaker)
+
+    Automatically excludes:
+    - Hidden and deleted threads
+    - The primary discussion thread (if set)
+    - Manually linked related threads
+
+    Each suggestion includes a grounded 'reason' label indicating the match signal.
+
+    Returns:
+    - { "items": [thread_objects_with_reason], "total": count }
+    - 404 if page not found
+    """
     from app.models import WikiPage
 
     page = db.session.get(WikiPage, page_id)
@@ -91,14 +107,9 @@ def wiki_suggested_threads_get(page_id: int):
         return jsonify({"error": "Wiki page not found"}), 404
 
     suggested = get_suggested_threads_for_wiki_page(page_id, limit=10)
-    if not suggested:
-        return jsonify({"items": [], "total": 0}), 200
 
     return jsonify({
-        "items": [
-            {**t, "type": "suggested", "reason": "Same category"}
-            for t in suggested
-        ],
+        "items": suggested,
         "total": len(suggested),
     }), 200
 

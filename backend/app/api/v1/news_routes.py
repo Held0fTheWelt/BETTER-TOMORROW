@@ -192,7 +192,7 @@ def news_detail(id_or_slug):
         unique_suggested = [t for t in suggested if t.get("id") not in manual_ids]
         if unique_suggested:
             news["suggested_threads"] = [
-                {**t, "type": "suggested", "reason": "Same category"} for t in unique_suggested
+                {**t, "type": "suggested"} for t in unique_suggested
             ]
 
     return jsonify(news), 200
@@ -722,14 +722,19 @@ def news_related_threads_delete(article_id: int, thread_id: int):
 def news_suggested_threads_get(article_id: int):
     """Get auto-suggested forum threads for a news article.
 
-    Suggestions are based on:
-    - Same category as the news article
-    - Sorted by recent activity (last_post_at DESC)
-    - Excludes hidden/deleted threads
-    - Excludes manually linked related threads
+    Suggestions are ranked deterministically by:
+    1. Tag matches (from the primary discussion thread)
+    2. Recent activity (last_post_at DESC, as tie-breaker)
+
+    Automatically excludes:
+    - Hidden and deleted threads
+    - The primary discussion thread (if set)
+    - Manually linked related threads
+
+    Each suggestion includes a grounded 'reason' label indicating the match signal.
 
     Returns:
-    - { "items": [thread_objects], "total": count }
+    - { "items": [thread_objects_with_reason], "total": count }
     - 404 if article not found
     """
     article = get_news_article_by_id(article_id)
@@ -739,14 +744,7 @@ def news_suggested_threads_get(article_id: int):
         # Non-published articles don't show suggestions to public
         return jsonify({"items": [], "total": 0}), 200
 
-    # Get auto-suggested threads
+    # Get auto-suggested threads (already excludes manual links and primary)
     suggested = get_suggested_threads_for_article(article_id, limit=10)
 
-    # Get manually linked threads to exclude duplicates
-    manual = list_related_threads_for_article(article_id, limit=100)
-    manual_ids = {t["id"] for t in manual}
-
-    # Filter out duplicates
-    unique_suggested = [t for t in suggested if t.get("id") not in manual_ids]
-
-    return jsonify({"items": unique_suggested, "total": len(unique_suggested)}), 200
+    return jsonify({"items": suggested, "total": len(suggested)}), 200

@@ -316,26 +316,47 @@ def publish_wiki_translation(page_id: int, language_code: str):
 
 
 def get_suggested_threads_for_wiki_page(page_id: int, *, limit: int = 5) -> list[dict]:
-    """Get auto-suggested related forum threads for a wiki page (in addition to explicit links)."""
+    """Get auto-suggested related forum threads for a wiki page (in addition to explicit links).
+
+    Uses deterministic ranking based on:
+    - Tag matches from discussion thread (if exists)
+    - Recent activity (tie-breaker)
+    - Excludes: primary discussion, manually related threads, hidden/deleted threads
+    """
     page = WikiPage.query.get(page_id)
     if not page:
         return []
 
-    from app.models import ForumThread, ForumCategory
+    from app.models import ForumThread, ForumThreadTag, ForumTag
+    from app.services.forum_service import suggest_related_threads_for_query
 
-    # Suggest threads from public categories (simple, coherent strategy)
-    # Only show public, non-hidden threads
-    q = (
-        ForumThread.query
-        .join(ForumCategory, ForumCategory.id == ForumThread.category_id)
-        .filter(
-            ForumCategory.is_active.is_(True),
-            ForumCategory.is_private.is_(False),
-            ForumThread.status.notin_(("deleted", "hidden")),
-        )
-        .order_by(ForumThread.last_post_at.desc().nullslast())
-        .limit(limit)
-        .all()
+    # Collect tags from the primary discussion thread (if linked)
+    query_tags = []
+    exclude_ids = set()
+
+    if page.discussion_thread_id:
+        exclude_ids.add(page.discussion_thread_id)
+        # Get tags from the primary discussion thread
+        primary_thread = ForumThread.query.get(page.discussion_thread_id)
+        if primary_thread:
+            thread_tags = db.session.query(ForumTag.label).join(
+                ForumThreadTag, ForumThreadTag.tag_id == ForumTag.id
+            ).filter(
+                ForumThreadTag.thread_id == page.discussion_thread_id
+            ).all()
+            query_tags = [t[0] for t in thread_tags]
+
+    # Collect manually linked thread IDs to exclude
+    manually_linked = list_related_threads_for_page(page_id, limit=100)
+    for thread_dict in manually_linked:
+        exclude_ids.add(thread_dict["id"])
+
+    # Use deterministic ranking function
+    suggestions = suggest_related_threads_for_query(
+        query_tags=query_tags if query_tags else None,
+        exclude_thread_ids=exclude_ids if exclude_ids else None,
+        exclude_primary_id=page.discussion_thread_id,
+        limit=limit,
     )
 
-    return [t.to_dict() for t in q]
+    return suggestions

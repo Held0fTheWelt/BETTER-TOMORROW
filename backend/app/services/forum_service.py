@@ -1310,3 +1310,120 @@ def create_notifications_for_thread_reply(
         db.session.add(n)
     db.session.commit()
 
+
+# --- Deterministic thread suggestion ranking --------------------------------
+
+
+def suggest_related_threads_for_query(
+    *,
+    query_tags: Optional[List[str]] = None,
+    exclude_thread_ids: Optional[Set[int]] = None,
+    exclude_primary_id: Optional[int] = None,
+    limit: int = 5,
+    category_id: Optional[int] = None,
+) -> list[dict]:
+    """
+    Suggest related forum threads based on tag matching and recent activity.
+
+    Deterministic ranking strategy:
+    1. Tag matches (each tag adds +1 score)
+    2. Recent activity (last_post_at as tie-breaker)
+    3. Exclusions: hidden/deleted threads, category restrictions, manually linked, primary discussion
+
+    Args:
+        query_tags: List of tags to match (case-insensitive)
+        exclude_thread_ids: Set of thread IDs to exclude (manually linked, duplicates)
+        exclude_primary_id: Primary discussion thread ID to exclude
+        limit: Maximum suggestions to return
+        category_id: Filter by specific category (optional)
+
+    Returns:
+        List of thread dicts with id, slug, title, status, reply_count, last_post_at, category, and reason.
+    """
+    if not query_tags:
+        query_tags = []
+    if not exclude_thread_ids:
+        exclude_thread_ids = set()
+
+    # Normalize query tags for matching
+    query_tags_lower = [tag.lower().strip() for tag in query_tags if tag]
+
+    # Base query: public, non-hidden, non-deleted threads
+    q = (
+        ForumThread.query
+        .join(ForumCategory, ForumCategory.id == ForumThread.category_id)
+        .filter(
+            ForumCategory.is_active.is_(True),
+            ForumCategory.is_private.is_(False),
+            ForumThread.status.notin_(("deleted", "hidden")),
+        )
+    )
+
+    # Optional category filter
+    if category_id:
+        q = q.filter(ForumThread.category_id == category_id)
+
+    # Exclude specific threads
+    if exclude_thread_ids:
+        q = q.filter(ForumThread.id.notin_(exclude_thread_ids))
+    if exclude_primary_id:
+        q = q.filter(ForumThread.id != exclude_primary_id)
+
+    # Fetch all candidates
+    threads = q.all()
+
+    # Score threads by tag matches (deterministic)
+    scored_threads: list[tuple[int, float, ForumThread]] = []
+
+    for thread in threads:
+        # Get thread tags (use label field for matching)
+        thread_tags = db.session.query(ForumTag.label).join(
+            ForumThreadTag, ForumThreadTag.tag_id == ForumTag.id
+        ).filter(
+            ForumThreadTag.thread_id == thread.id
+        ).all()
+
+        thread_tags_lower = [t[0].lower().strip() for t in thread_tags]
+
+        # Calculate tag match score
+        tag_matches = sum(1 for qt in query_tags_lower if qt in thread_tags_lower)
+
+        # Last activity (as float for stable sorting)
+        last_activity = thread.last_post_at.timestamp() if thread.last_post_at else thread.created_at.timestamp()
+
+        # Score: tag matches (primary), then recent activity (tie-breaker)
+        score = (tag_matches, last_activity)
+        scored_threads.append((tag_matches, last_activity, thread))
+
+    # Sort: most tags first, then most recent
+    scored_threads.sort(key=lambda x: (x[0], x[1]), reverse=True)
+
+    # Build result with reason labels
+    result = []
+    for tag_matches, last_activity, thread in scored_threads[:limit]:
+        thread_dict = {
+            "id": thread.id,
+            "slug": thread.slug,
+            "title": thread.title,
+            "status": thread.status,
+            "reply_count": thread.reply_count,
+            "last_post_at": thread.last_post_at.isoformat() if thread.last_post_at else None,
+        }
+        if thread.category:
+            thread_dict["category"] = {
+                "id": thread.category.id,
+                "slug": thread.category.slug,
+                "title": thread.category.title
+            }
+
+        # Grounded reason label
+        if tag_matches > 0:
+            tag_word = "tag" if tag_matches == 1 else "tags"
+            thread_dict["reason"] = f"Matched {tag_matches} {tag_word}"
+        else:
+            thread_dict["reason"] = "Recent discussion"
+
+        result.append(thread_dict)
+
+    return result
+
