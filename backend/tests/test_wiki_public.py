@@ -32,18 +32,20 @@ def wiki_page_with_discussion(app):
 
 
 def test_wiki_page_get_returns_discussion_link_when_linked(client, wiki_page_with_discussion):
-    """GET /api/v1/wiki/<slug> includes discussion_thread_id and discussion_thread_slug when page has linked thread."""
+    """GET /api/v1/wiki/<slug> includes discussion object when page has linked thread."""
     page, thread_id = wiki_page_with_discussion
     resp = client.get("/api/v1/wiki/test-page?lang=de")
     assert resp.status_code == 200
     data = resp.get_json()
     assert data.get("title") == "Test Page"
-    assert data.get("discussion_thread_id") == thread_id
-    assert data.get("discussion_thread_slug") == "wiki-discuss"
+    assert data.get("discussion") is not None
+    assert data["discussion"].get("thread_id") == thread_id
+    assert data["discussion"].get("thread_slug") == "wiki-discuss"
+    assert data["discussion"].get("type") == "primary"
 
 
 def test_wiki_page_get_no_discussion_link_when_not_linked(app, client):
-    """GET /api/v1/wiki/<slug> returns discussion_thread_id and discussion_thread_slug null when not linked."""
+    """GET /api/v1/wiki/<slug> returns discussion null when not linked."""
     with app.app_context():
         page = WikiPage(key="nolink", is_published=True, discussion_thread_id=None)
         db.session.add(page)
@@ -61,5 +63,4 @@ def test_wiki_page_get_no_discussion_link_when_not_linked(app, client):
     resp = client.get("/api/v1/wiki/no-link-page?lang=de")
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data.get("discussion_thread_id") is None
-    assert data.get("discussion_thread_slug") is None
+    assert data.get("discussion") is None

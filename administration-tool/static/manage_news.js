@@ -280,6 +280,7 @@
                 updateTranslationStatusDisplay();
                 updateDiscussionDisplay();
                 fetchRelatedThreads();
+                fetchSuggestedThreads();
                 ($("manage-news-editor-title") || {}).textContent = "Edit article";
                 var pubBtn = $("manage-news-publish-btn");
                 var unpubBtn = $("manage-news-unpublish-btn");
@@ -452,21 +453,75 @@
             });
     }
 
-    function onRelatedThreadAdd() {
+    function renderSuggestedThreadsList(items) {
+        var listEl = $("manage-news-suggested-threads-list");
+        if (!listEl) return;
+        while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+        if (!items || items.length === 0) {
+            var empty = document.createTextNode("No suggestions.");
+            listEl.appendChild(empty);
+            return;
+        }
+        var ul = document.createElement("ul");
+        ul.className = "manage-suggested-threads-ul";
+        items.forEach(function(t) {
+            if (!t) return;
+            var li = document.createElement("li");
+            li.className = "manage-suggested-thread-item";
+            var span = document.createElement("span");
+            span.textContent = (t.title || ("Thread #" + t.id)) + " (#" + t.id + ")";
+            li.appendChild(span);
+            var addBtn = document.createElement("button");
+            addBtn.type = "button";
+            addBtn.className = "btn btn-ghost btn-sm";
+            addBtn.textContent = "Add as related";
+            addBtn.setAttribute("aria-label", "Add this suggested thread as related");
+            (function(tid) {
+                addBtn.addEventListener("click", function() {
+                    onRelatedThreadAdd(tid);
+                });
+            }(t.id));
+            li.appendChild(addBtn);
+            ul.appendChild(li);
+        });
+        listEl.appendChild(ul);
+    }
+
+    function fetchSuggestedThreads() {
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
-        var input = $("manage-news-related-thread-id");
-        var raw = input && input.value ? input.value.trim() : "";
-        var tid = parseInt(raw, 10);
-        if (!raw || isNaN(tid) || tid < 1) {
-            showFormError("Enter a valid thread ID (integer \u2265 1).");
-            return;
+        apiRef("/api/v1/news/" + id + "/suggested-threads")
+            .then(function(data) {
+                renderSuggestedThreadsList(data.items || []);
+            })
+            .catch(function() {
+                var listEl = $("manage-news-suggested-threads-list");
+                if (listEl) listEl.textContent = "Failed to load suggested threads.";
+            });
+    }
+
+    function onRelatedThreadAdd(threadIdFromSuggested) {
+        var id = ($("manage-news-id") || {}).value;
+        if (!id) return;
+        var tid;
+        if (threadIdFromSuggested) {
+            tid = threadIdFromSuggested;
+        } else {
+            var input = $("manage-news-related-thread-id");
+            var raw = input && input.value ? input.value.trim() : "";
+            tid = parseInt(raw, 10);
+            if (!raw || isNaN(tid) || tid < 1) {
+                showFormError("Enter a valid thread ID (integer \u2265 1).");
+                return;
+            }
         }
         apiRef("/api/v1/news/" + id + "/related-threads", { method: "POST", body: JSON.stringify({ thread_id: tid }) })
             .then(function(data) {
                 showFormSuccess("Related thread added.");
-                if (input) input.value = "";
+                var input = $("manage-news-related-thread-id");
+                if (input && !threadIdFromSuggested) input.value = "";
                 renderRelatedThreadsList(data.items || []);
+                fetchSuggestedThreads();
             })
             .catch(function(e) {
                 showFormError(typeof e === "object" && e.message ? e.message : "Add related thread failed.");

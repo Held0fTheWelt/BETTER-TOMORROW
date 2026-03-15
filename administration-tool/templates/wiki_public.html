@@ -67,6 +67,32 @@
                     relatedWrap.appendChild(list);
                     content.appendChild(relatedWrap);
                 }
+                if (data.suggested_threads && data.suggested_threads.length) {
+                    var suggestedWrap = document.createElement('section');
+                    suggestedWrap.className = 'wiki-suggested-threads';
+                    var suggestedHeading = document.createElement('h3');
+                    suggestedHeading.textContent = 'Suggested discussions';
+                    suggestedWrap.appendChild(suggestedHeading);
+                    var suggestedList = document.createElement('ul');
+                    suggestedList.className = 'wiki-suggested-threads-list';
+                    data.suggested_threads.forEach(function(t) {
+                        if (!t || !t.slug) return;
+                        var li = document.createElement('li');
+                        var a = document.createElement('a');
+                        a.href = '/forum/threads/' + encodeURIComponent(t.slug);
+                        a.textContent = t.title || 'Forum thread';
+                        li.appendChild(a);
+                        if (t.category && t.category.slug) {
+                            var catSpan = document.createElement('span');
+                            catSpan.className = 'wiki-suggested-thread-category';
+                            catSpan.textContent = ' (' + t.category.slug + ')';
+                            li.appendChild(catSpan);
+                        }
+                        suggestedList.appendChild(li);
+                    });
+                    suggestedWrap.appendChild(suggestedList);
+                    content.appendChild(suggestedWrap);
+                }
                 content.hidden = false;
                 if (data.title) document.title = data.title + ' – ' + (window.__FRONTEND_CONFIG__ && window.__FRONTEND_CONFIG__.siteName ? window.__FRONTEND_CONFIG__.siteName : 'BLACKVEIN');
             } else {

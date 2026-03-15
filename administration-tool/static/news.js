@@ -297,6 +297,35 @@
                 relatedWrap.appendChild(list);
                 content.appendChild(relatedWrap);
             }
+
+            // Suggested threads block (auto-generated, contextual)
+            if (article.suggested_threads && article.suggested_threads.length) {
+                var suggestedWrap = document.createElement('section');
+                suggestedWrap.className = 'news-suggested-threads';
+                var suggestedHeading = document.createElement('h3');
+                suggestedHeading.textContent = 'Suggested discussions';
+                suggestedWrap.appendChild(suggestedHeading);
+                var suggestedList = document.createElement('ul');
+                suggestedList.className = 'news-suggested-threads-list';
+                article.suggested_threads.forEach(function(t) {
+                    if (!t || !t.slug) return;
+                    var li = document.createElement('li');
+                    var a = document.createElement('a');
+                    a.href = '/forum/threads/' + encodeURIComponent(t.slug);
+                    a.textContent = t.title || 'Forum thread';
+                    li.appendChild(a);
+                    if (t.category && t.category.slug) {
+                        var catSpan = document.createElement('span');
+                        catSpan.className = 'news-suggested-thread-category';
+                        catSpan.textContent = ' (' + t.category.slug + ')';
+                        li.appendChild(catSpan);
+                    }
+                    list.appendChild(li);
+                });
+                suggestedWrap.appendChild(suggestedList);
+                content.appendChild(suggestedWrap);
+            }
+
             content.appendChild(body);
             if (article.discussion_thread_slug) {
                 var discussWrap = document.createElement('p');

@@ -275,21 +275,28 @@
             });
     }
 
-    function onWikiRelatedThreadAdd() {
+    function onWikiRelatedThreadAdd(threadIdFromSuggested) {
         var pageId = state.selectedPageId;
         if (!pageId) return;
-        var input = $("manage-wiki-related-thread-id");
-        var raw = input && input.value ? input.value.trim() : "";
-        var tid = parseInt(raw, 10);
-        if (!raw || isNaN(tid) || tid < 1) {
-            var err = $("manage-wiki-error");
-            if (err) { err.textContent = "Enter a valid thread ID (integer \u2265 1)."; err.hidden = false; }
-            return;
+        var tid;
+        if (threadIdFromSuggested) {
+            tid = threadIdFromSuggested;
+        } else {
+            var input = $("manage-wiki-related-thread-id");
+            var raw = input && input.value ? input.value.trim() : "";
+            tid = parseInt(raw, 10);
+            if (!raw || isNaN(tid) || tid < 1) {
+                var err = $("manage-wiki-error");
+                if (err) { err.textContent = "Enter a valid thread ID (integer \u2265 1)."; err.hidden = false; }
+                return;
+            }
         }
         apiRef("/api/v1/wiki/" + pageId + "/related-threads", { method: "POST", body: JSON.stringify({ thread_id: tid }) })
             .then(function(data) {
-                if (input) input.value = "";
+                var input = $("manage-wiki-related-thread-id");
+                if (input && !threadIdFromSuggested) input.value = "";
                 renderWikiRelatedThreadsList(data.items || []);
+                fetchWikiSuggestedThreads();
             })
             .catch(function(e) {
                 var err = $("manage-wiki-error");
@@ -304,10 +311,58 @@
         apiRef("/api/v1/wiki/" + pageId + "/related-threads/" + threadId, { method: "DELETE" })
             .then(function(data) {
                 renderWikiRelatedThreadsList(data.items || []);
+                fetchWikiSuggestedThreads();
             })
             .catch(function(e) {
                 var err = $("manage-wiki-error");
                 if (err) { err.textContent = (typeof e === "object" && e.message ? e.message : "Remove related thread failed."); err.hidden = false; }
+            });
+    }
+
+    function renderWikiSuggestedThreadsList(items) {
+        var listEl = $("manage-wiki-suggested-threads-list");
+        if (!listEl) return;
+        while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+        if (!items || items.length === 0) {
+            var empty = document.createTextNode("No suggestions.");
+            listEl.appendChild(empty);
+            return;
+        }
+        var ul = document.createElement("ul");
+        ul.className = "manage-suggested-threads-ul";
+        items.forEach(function(t) {
+            if (!t) return;
+            var li = document.createElement("li");
+            li.className = "manage-suggested-thread-item";
+            var span = document.createElement("span");
+            span.textContent = (t.title || ("Thread #" + t.id)) + " (#" + t.id + ")";
+            li.appendChild(span);
+            var addBtn = document.createElement("button");
+            addBtn.type = "button";
+            addBtn.className = "btn btn-ghost btn-sm";
+            addBtn.textContent = "Add as related";
+            addBtn.setAttribute("aria-label", "Add this suggested thread as related");
+            (function(tid) {
+                addBtn.addEventListener("click", function() {
+                    onWikiRelatedThreadAdd(tid);
+                });
+            }(t.id));
+            li.appendChild(addBtn);
+            ul.appendChild(li);
+        });
+        listEl.appendChild(ul);
+    }
+
+    function fetchWikiSuggestedThreads() {
+        var pageId = state.selectedPageId;
+        if (!pageId) return;
+        apiRef("/api/v1/wiki/" + pageId + "/suggested-threads")
+            .then(function(data) {
+                renderWikiSuggestedThreadsList(data.items || []);
+            })
+            .catch(function() {
+                var listEl = $("manage-wiki-suggested-threads-list");
+                if (listEl) listEl.textContent = "Failed to load suggested threads.";
             });
     }
 
@@ -339,6 +394,7 @@
         ($("manage-wiki-page-title") || {}).textContent = page ? "Page: " + page.key : "Page";
         updateWikiDiscussionDisplay();
         fetchWikiRelatedThreads();
+        fetchWikiSuggestedThreads();
 
         apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations")
             .then(function(data) {
