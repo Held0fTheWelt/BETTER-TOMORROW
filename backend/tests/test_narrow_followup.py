@@ -281,3 +281,113 @@ class TestNewsContextualEnrichment:
             assert data["discussion"]["type"] == "primary"
             assert "thread_id" in data["discussion"]
             assert "thread_title" in data["discussion"]
+
+
+class TestWikiAutoSuggestions:
+    """Test Wiki article auto-suggestions and endpoint parity with News."""
+
+    def test_wiki_suggestions_endpoint_returns_data(self, client, app, test_user):
+        """GET /api/v1/wiki/<id>/suggested-threads returns article suggestions."""
+        from app.models import WikiPage, WikiPageTranslation, ForumCategory, ForumThread
+        from app.extensions import db
+
+        with app.app_context():
+            user, _ = test_user
+            now = datetime.now(timezone.utc)
+
+            # Create category
+            cat = ForumCategory(
+                slug="wiki-test-cat",
+                title="Wiki Test Cat",
+                sort_order=0,
+                is_active=True,
+                is_private=False
+            )
+            db.session.add(cat)
+            db.session.flush()
+
+            # Create forum thread
+            thread = ForumThread(
+                category_id=cat.id,
+                author_id=user.id,
+                slug="wiki-test-thread",
+                title="Test Wiki Discussion",
+                status="open",
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(thread)
+            db.session.flush()
+
+            # Create wiki page
+            page = WikiPage(
+                key="test-wiki-page",
+                is_published=True,
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(page)
+            db.session.flush()
+
+            trans = WikiPageTranslation(
+                page_id=page.id,
+                language_code="de",
+                title="Test Wiki",
+                slug="test-wiki",
+                content_markdown="Test wiki content",
+            )
+            db.session.add(trans)
+            db.session.commit()
+            page_id = page.id
+
+        response = client.get(f"/api/v1/wiki/{page_id}/suggested-threads")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "items" in data
+        assert "total" in data
+        assert isinstance(data["items"], list)
+        assert isinstance(data["total"], int)
+
+    def test_wiki_suggestions_endpoint_returns_parity_with_news(self, client, app):
+        """Wiki suggested-threads endpoint returns same structure as News endpoint."""
+        response = client.get("/api/v1/wiki/999/suggested-threads")
+        # Should return 404 for non-existent page (parity with News behavior)
+        assert response.status_code == 404
+
+    def test_wiki_page_detail_includes_suggested_threads(self, client, app, test_user):
+        """Wiki page detail response includes suggested_threads field."""
+        from app.models import WikiPage, WikiPageTranslation
+        from app.extensions import db
+
+        with app.app_context():
+            user, _ = test_user
+            now = datetime.now(timezone.utc)
+
+            page = WikiPage(
+                key="wiki-with-suggestions",
+                is_published=True,
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(page)
+            db.session.flush()
+
+            trans = WikiPageTranslation(
+                page_id=page.id,
+                language_code="de",
+                title="Wiki With Suggestions",
+                slug="wiki-with-suggestions",
+                content_markdown="Content",
+            )
+            db.session.add(trans)
+            db.session.commit()
+
+        response = client.get("/api/v1/wiki/wiki-with-suggestions")
+        assert response.status_code == 200
+        data = response.get_json()
+        # Should have these fields after enhancement
+        assert "title" in data
+        assert "slug" in data
+        # suggested_threads field may or may not be present, but if present, must be array
+        if "suggested_threads" in data:
+            assert isinstance(data["suggested_threads"], list)

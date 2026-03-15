@@ -80,6 +80,29 @@ def wiki_page_get(slug):
     return jsonify(payload), 200
 
 
+@api_v1_bp.route("/wiki/<int:page_id>/suggested-threads", methods=["GET"])
+@limiter.limit("60 per minute")
+def wiki_suggested_threads_get(page_id: int):
+    """Get auto-suggested forum threads for a wiki page (endpoint parity with News)."""
+    from app.models import WikiPage
+
+    page = db.session.get(WikiPage, page_id)
+    if not page:
+        return jsonify({"error": "Wiki page not found"}), 404
+
+    suggested = get_suggested_threads_for_wiki_page(page_id, limit=10)
+    if not suggested:
+        return jsonify({"items": [], "total": 0}), 200
+
+    return jsonify({
+        "items": [
+            {**t, "type": "suggested", "reason": "Same category"}
+            for t in suggested
+        ],
+        "total": len(suggested),
+    }), 200
+
+
 @api_v1_bp.route("/wiki", methods=["GET"])
 @limiter.limit("60 per minute")
 @require_jwt_moderator_or_admin
