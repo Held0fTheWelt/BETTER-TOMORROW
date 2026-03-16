@@ -38,10 +38,12 @@ def upgrade():
             ),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         )
-        op.create_unique_constraint(
+        # SQLite can't ALTER TABLE to add constraints; use a unique index instead.
+        op.create_index(
             "uq_forum_thread_bookmark_thread_user",
             "forum_thread_bookmarks",
             ["thread_id", "user_id"],
+            unique=True,
         )
         op.create_index(
             "ix_forum_thread_bookmarks_user_id",
@@ -63,11 +65,6 @@ def upgrade():
             sa.Column("slug", sa.String(length=64), nullable=False),
             sa.Column("label", sa.String(length=64), nullable=False),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        )
-        op.create_unique_constraint(
-            "uq_forum_tags_slug",
-            "forum_tags",
-            ["slug"],
         )
         op.create_index(
             "ix_forum_tags_slug",
@@ -93,10 +90,12 @@ def upgrade():
                 nullable=False,
             ),
         )
-        op.create_unique_constraint(
+        # SQLite can't ALTER TABLE to add constraints; use a unique index instead.
+        op.create_index(
             "uq_forum_thread_tags_thread_tag",
             "forum_thread_tags",
             ["thread_id", "tag_id"],
+            unique=True,
         )
         op.create_index(
             "ix_forum_thread_tags_thread_id",
@@ -120,17 +119,16 @@ def downgrade():
     if "forum_thread_tags" in existing_tables:
         op.drop_index("ix_forum_thread_tags_tag_id", table_name="forum_thread_tags")
         op.drop_index("ix_forum_thread_tags_thread_id", table_name="forum_thread_tags")
-        op.drop_constraint("uq_forum_thread_tags_thread_tag", "forum_thread_tags", type_="unique")
+        op.drop_index("uq_forum_thread_tags_thread_tag", table_name="forum_thread_tags")
         op.drop_table("forum_thread_tags")
 
     if "forum_tags" in existing_tables:
         op.drop_index("ix_forum_tags_slug", table_name="forum_tags")
-        op.drop_constraint("uq_forum_tags_slug", "forum_tags", type_="unique")
         op.drop_table("forum_tags")
 
     if "forum_thread_bookmarks" in existing_tables:
         op.drop_index("ix_forum_thread_bookmarks_thread_id", table_name="forum_thread_bookmarks")
         op.drop_index("ix_forum_thread_bookmarks_user_id", table_name="forum_thread_bookmarks")
-        op.drop_constraint("uq_forum_thread_bookmark_thread_user", "forum_thread_bookmarks", type_="unique")
+        op.drop_index("uq_forum_thread_bookmark_thread_user", table_name="forum_thread_bookmarks")
         op.drop_table("forum_thread_bookmarks")
 
