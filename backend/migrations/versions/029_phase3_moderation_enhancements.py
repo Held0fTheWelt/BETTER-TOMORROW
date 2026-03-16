@@ -49,7 +49,6 @@ def upgrade():
             sa.Column(
                 "assigned_to",
                 sa.Integer,
-                sa.ForeignKey("users.id", ondelete="SET NULL"),
                 nullable=True,
             ),
         )

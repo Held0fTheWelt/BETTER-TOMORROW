@@ -91,30 +91,32 @@ def upgrade():
             unique=False,
         )
 
-    # -- activity_log indexes --
-    existing_activity_indexes = {
-        ix["name"] for ix in inspector.get_indexes("activity_log")
-    }
-    # Moderation activity history: WHERE category = ? AND action = ? ORDER BY created_at DESC
-    if "ix_activity_log_category_action_created" not in existing_activity_indexes:
-        op.create_index(
-            "ix_activity_log_category_action_created",
-            "activity_log",
-            ["category", "action", "created_at"],
-            unique=False,
-        )
+    # -- activity_logs indexes --
+    if inspector.has_table("activity_logs"):
+        existing_activity_indexes = {
+            ix["name"] for ix in inspector.get_indexes("activity_logs")
+        }
+        # Moderation activity history: WHERE category = ? AND action = ? ORDER BY created_at DESC
+        if "ix_activity_logs_category_action_created" not in existing_activity_indexes:
+            op.create_index(
+                "ix_activity_logs_category_action_created",
+                "activity_logs",
+                ["category", "action", "created_at"],
+                unique=False,
+            )
 
 
 def downgrade():
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    # Drop activity_log index
-    existing_activity_indexes = {
-        ix["name"] for ix in inspector.get_indexes("activity_log")
-    }
-    if "ix_activity_log_category_action_created" in existing_activity_indexes:
-        op.drop_index("ix_activity_log_category_action_created", table_name="activity_log")
+    # Drop activity_logs index
+    if inspector.has_table("activity_logs"):
+        existing_activity_indexes = {
+            ix["name"] for ix in inspector.get_indexes("activity_logs")
+        }
+        if "ix_activity_logs_category_action_created" in existing_activity_indexes:
+            op.drop_index("ix_activity_logs_category_action_created", table_name="activity_logs")
 
     # Drop forum_thread_bookmarks index
     existing_bookmark_indexes = {
