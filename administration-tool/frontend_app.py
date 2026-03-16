@@ -7,6 +7,19 @@ from urllib.parse import urlparse
 
 from flask import Flask, request, session, render_template
 
+# Load environment from .env (local dev convenience)
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    _here = Path(__file__).resolve().parent
+    load_dotenv(_here / ".env")
+    # Also load repo-root .env so one file can be shared with backend
+    _repo_root = _here.parent
+    load_dotenv(_repo_root / ".env")
+except ImportError:
+    pass
+
 # Backend API base URL (no trailing slash). Used for login link and for frontend JS.
 # IMPORTANT: Defaults to production URL (held0fthewelt.pythonanywhere.com) for live testing.
 # For local development: set BACKEND_API_URL=http://127.0.0.1:5000 or uncomment the localhost line below.
