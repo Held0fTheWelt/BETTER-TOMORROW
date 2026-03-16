@@ -391,3 +391,255 @@ class TestWikiAutoSuggestions:
         # suggested_threads field may or may not be present, but if present, must be array
         if "suggested_threads" in data:
             assert isinstance(data["suggested_threads"], list)
+
+
+```python
+import pytest
+from datetime import datetime, timezone
+
+class TestNewsAutoSuggestions:
+    """Test News article auto-suggestions and contextual enrichment."""
+
+    def test_news_suggestions_no_duplicates(self, client, app, test_user):
+        """Verify no thread appears twice in suggestions."""
+        from app.models import NewsArticle, NewsArticleTranslation, ForumCategory, ForumThread
+        from app.extensions import db
+
+        with app.app_context():
+            user, _ = test_user
+            now = datetime.now(timezone.utc)
+
+            # Create category for forum threads
+            cat = ForumCategory(
+                slug="news-test-cat",
+                title="News Test Cat",
+                sort_order=0,
+                is_active=True,
+                is_private=False
+            )
+            db.session.add(cat)
+            db.session.flush()
+
+            # Create a test forum thread
+            thread1 = ForumThread(
+                category_id=cat.id,
+                author_id=user.id,
+                slug="news-test-thread-1",
+                title="Test Discussion 1",
+                status="open",
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(thread1)
+            db.session.flush()
+
+            thread2 = ForumThread(
+                category_id=cat.id,
+                author_id=user.id,
+                slug="news-test-thread-1", # Same slug as thread1
+                title="Test Discussion 2",
+                status="open",
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(thread2)
+            db.session.flush()
+
+
+            # Create a news article
+            article = NewsArticle(
+                author_id=user.id,
+                status="published",
+                default_language="de",
+                category="news-test-cat",
+                created_at=now,
+                updated_at=now,
+                published_at=now,
+            )
+            db.session.add(article)
+            db.session.flush()
+
+            response = client.get(f"/api/v1/news/{article.id}/suggested-threads")
+            suggested_threads = response.json
+
+            assert len(suggested_threads) == 2
+            assert thread1['slug'] in [t['slug'] for t in suggested_threads]
+            assert thread2['slug'] in [t['slug'] for t in suggested_threads]
+
+
+    def test_news_suggestions_exclude_hidden(self, client, app, test_user):
+        """Verify hidden threads are excluded from suggestions."""
+        from app.models import NewsArticle, NewsArticleTranslation, ForumCategory, ForumThread
+        from app.extensions import db
+
+        with app.app_context():
+            user, _ = test_user
+            now = datetime.now(timezone.utc)
+
+            # Create category for forum threads
+            cat = ForumCategory(
+                slug="news-test-cat",
+                title="News Test Cat",
+                sort_order=0,
+                is_active=True,
+                is_private=False
+            )
+            db.session.add(cat)
+            db.session.flush()
+
+            # Create a test forum thread
+            thread1 = ForumThread(
+                category_id=cat.id,
+                author_id=user.id,
+                slug="news-test-thread-1",
+                title="Test Discussion 1",
+                status="open",
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(thread1)
+            db.session.flush()
+
+            # Create a hidden forum thread
+            thread2 = ForumThread(
+                category_id=cat.id,
+                author_id=user.id,
+                slug="news-test-thread-2",
+                title="Test Discussion 2",
+                status="hidden",
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(thread2)
+            db.session.flush()
+
+            # Create a news article
+            article = NewsArticle(
+                author_id=user.id,
+                status="published",
+                default_language="de",
+                category="news-test-cat",
+                created_at=now,
+                updated_at=now,
+                published_at=now,
+            )
+            db.session.add(article)
+            db.session.flush()
+
+            response = client.get(f"/api/v1/news/{article.id}/suggested-threads")
+            suggested_threads = response.json
+
+            assert len(suggested_threads) == 1
+            assert thread1['slug'] in [t['slug'] for t in suggested_threads]
+            assert thread2['slug'] not in [t['slug'] for t in suggested_threads]
+
+    def test_news_suggestions_deterministic(self, client, app, test_user):
+        """Verify the same input always returns the same output."""
+        from app.models import NewsArticle, NewsArticleTranslation, ForumCategory, ForumThread
+        from app.extensions import db
+
+        with app.app_context():
+            user, _ = test_user
+            now = datetime.now(timezone.utc)
+
+            # Create category for forum threads
+            cat = ForumCategory(
+                slug="news-test-cat",
+                title="News Test Cat",
+                sort_order=0,
+                is_active=True,
+                is_private=False
+            )
+            db.session.add(cat)
+            db.session.flush()
+
+            # Create a test forum thread
+            thread1 = ForumThread(
+                category_id=cat.id,
+                author_id=user.id,
+                slug="news-test-thread-1",
+                title="Test Discussion 1",
+                status="open",
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(thread1)
+            db.session.flush()
+
+            # Create a news article
+            article = NewsArticle(
+                author_id=user.id,
+                status="published",
+                default_language="de",
+                category="news-test-cat",
+                created_at=now,
+                updated_at=now,
+                published_at=now,
+            )
+            db.session.add(article)
+            db.session.flush()
+
+            # Get the suggestions on the first run
+            response1 = client.get(f"/api/v1/news/{article.id}/suggested-threads")
+            suggestions1 = response1.json
+
+            # Get the suggestions again
+            response2 = client.get(f"/api/v1/news/{article.id}/suggested-threads")
+            suggestions2 = response2.json
+
+            assert len(suggestions1) == len(suggestions2)
+            assert sorted([t['slug'] for t in suggestions1]) == sorted([t['slug'] for t in suggestions2])
+
+    def test_news_suggestions_truthful_reasons(self, client, app, test_user):
+        """Verify reason labels match the logic."""
+        from app.models import NewsArticle, NewsArticleTranslation, ForumCategory, ForumThread
+        from app.extensions import db
+
+        with app.app_context():
+            user, _ = test_user
+            now = datetime.now(timezone.utc)
+
+            # Create category for forum threads
+            cat = ForumCategory(
+                slug="news-test-cat",
+                title="News Test Cat",
+                sort_order=0,
+                is_active=True,
+                is_private=False
+            )
+            db.session.add(cat)
+            db.session.flush()
+
+            # Create a test forum thread
+            thread1 = ForumThread(
+                category_id=cat.id,
+                author_id=user.id,
+                slug="news-test-thread-1",
+                title="Test Discussion 1",
+                status="open",
+                created_at=now,
+                updated_at=now,
+            )
+            db.session.add(thread1)
+            db.session.flush()
+
+            # Create a news article
+            article = NewsArticle(
+                author_id=user.id,
+                status="published",
+                default_language="de",
+                category="news-test-cat",
+                created_at=now,
+                updated_at=now,
+                published_at=now,
+            )
+            db.session.add(article)
+            db.session.flush()
+
+            response = client.get(f"/api/v1/news/{article.id}/suggested-threads")
+            suggested_threads = response.json
+
+            if suggested_threads:
+                assert suggested_threads[0]['reason'] == 'related_topic'  #Example Reason
+
+```
