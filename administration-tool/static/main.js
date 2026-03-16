@@ -6,6 +6,8 @@
 (function() {
     function getApiBaseUrl() {
         var c = window.__FRONTEND_CONFIG__;
+        // Prefer same-origin proxy to avoid CORS when backend is remote.
+        if (c && c.apiProxyBase) return String(c.apiProxyBase).trim();
         return (c && c.backendApiUrl) ? String(c.backendApiUrl).trim() : '';
     }
 
@@ -18,7 +20,9 @@
     function apiFetch(pathOrUrl, opts) {
         opts = opts || {};
         var base = getApiBaseUrl();
-        var url = (pathOrUrl.indexOf('http') === 0) ? pathOrUrl : (base ? base.replace(/\/$/, '') + (pathOrUrl.indexOf('/') === 0 ? pathOrUrl : '/' + pathOrUrl) : pathOrUrl);
+        var url = (pathOrUrl.indexOf('http') === 0)
+            ? pathOrUrl
+            : (base ? base.replace(/\/$/, '') + (pathOrUrl.indexOf('/') === 0 ? pathOrUrl : '/' + pathOrUrl) : pathOrUrl);
         var method = (opts.method || 'GET').toUpperCase();
         var headers = opts.headers || {};
         if (!headers['Accept']) headers['Accept'] = 'application/json';

@@ -7,6 +7,8 @@
 
     function getApiBase() {
         var c = window.__FRONTEND_CONFIG__;
+        // Prefer same-origin proxy to avoid CORS when backend is remote.
+        if (c && c.apiProxyBase) return String(c.apiProxyBase).trim();
         return (c && c.backendApiUrl) ? String(c.backendApiUrl).trim() : "";
     }
 
