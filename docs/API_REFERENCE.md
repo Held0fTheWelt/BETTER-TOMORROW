@@ -1250,7 +1250,7 @@ Get a wiki page by slug with integrated discussion context.
 
 ---
 
-### GET /api/v1/wiki/<slug>/suggested-threads
+### GET /api/v1/wiki/<int:page_id>/suggested-threads
 Get suggested related threads for a wiki page (separate endpoint).
 
 **Auth:** Optional
@@ -1298,8 +1298,7 @@ When retrieving a news article or wiki page, you can see three distinct types of
 - Automatically generated suggestions based on category matching
 - Computed deterministically without manual curation
 - Included in the response as an array `suggested_threads`
-- Each suggestion includes a `reason` field explaining the match (e.g., "Same category")
-- Excludes duplicates with primary discussion and manually-linked related threads
+- Each suggestion includes a `reason` field explaining the match (e.g., - Excludes duplicates with primary discussion and manually-linked related threads
 - Limits to 5 per content item by default (max 10)
 
 ### Auto-Suggestion Strategy
