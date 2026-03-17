@@ -1155,7 +1155,7 @@ Get a single news article by ID (integer) or slug (string).
       "author_username": "user2",
       "category": {"id": 1, "slug": "general", "title": "General"},
       "type": "suggested",
-      "reason": "Same category"
+      (removed - not supported by current implementation)
     }
   ]
 }
@@ -1237,7 +1237,7 @@ Get a wiki page by slug with integrated discussion context.
       "author_username": "user4",
       "category": {"id": 1, "slug": "general", "title": "General"},
       "type": "suggested",
-      "reason": "Same category"
+      (removed - not supported by current implementation)
     }
   ]
 }
