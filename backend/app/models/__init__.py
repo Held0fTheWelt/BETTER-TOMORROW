@@ -10,6 +10,9 @@ from app.models.wiki_page import WikiPage, WikiPageTranslation, WikiPageForumThr
 from app.models.slogan import Slogan
 from app.models.site_setting import SiteSetting
 from app.models.notification import Notification
+
+from app.models.game_character import GameCharacter
+from app.models.game_save_slot import GameSaveSlot
 from app.models.forum import (
     ForumCategory,
     ForumThread,
@@ -40,6 +43,8 @@ __all__ = [
     "Slogan",
     "SiteSetting",
     "Notification",
+    "GameCharacter",
+    "GameSaveSlot",
     "ForumCategory",
     "ForumThread",
     "ForumPost",

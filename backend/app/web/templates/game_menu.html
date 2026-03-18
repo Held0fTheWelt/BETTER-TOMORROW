@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Game Menu – World of Shadows{% endblock %}
 {% block content %}
-<div class="card" style="max-width: 1200px; margin: 0 auto; display: grid; gap: 1.25rem;">
+<div class="card" style="max-width: 1280px; margin: 0 auto; display: grid; gap: 1.25rem;">
     <div>
         <h1>Game Menu</h1>
         <p>Launch solo stories, group stories, or the evolving open world through the separate play service.</p>
@@ -10,18 +10,44 @@
         {% endif %}
     </div>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; align-items:end;">
         <div>
-            <label for="gameDisplayName">Display name</label>
-            <input id="gameDisplayName" type="text" value="{{ current_user.username if current_user else '' }}" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
+            <label for="gameCharacterSelect">Character profile</label>
+            <select id="gameCharacterSelect" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></select>
         </div>
         <div>
-            <label for="gameCharacterName">Character name (optional)</label>
-            <input id="gameCharacterName" type="text" placeholder="Scene-facing character name" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
+            <label for="gameDisplayName">Fallback display name</label>
+            <input id="gameDisplayName" type="text" value="{{ current_user.username if current_user else '' }}" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
         </div>
         <div>
             <label for="gamePreferredRole">Preferred role id (optional)</label>
             <input id="gamePreferredRole" type="text" placeholder="mediator" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
+        </div>
+    </div>
+
+    <div class="card" style="background: rgba(255,255,255,0.03); display:grid; gap: 0.75rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
+            <h2 style="margin:0;">Character workshop</h2>
+            <small id="characterMeta" class="muted">No character selected.</small>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; align-items:end;">
+            <div>
+                <label for="newCharacterName">Character name</label>
+                <input id="newCharacterName" type="text" placeholder="Véronique" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
+            </div>
+            <div>
+                <label for="newCharacterDisplayName">Scene display name</label>
+                <input id="newCharacterDisplayName" type="text" placeholder="Véronique Houillé" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
+            </div>
+            <div>
+                <label for="newCharacterBio">Bio / notes</label>
+                <input id="newCharacterBio" type="text" placeholder="Writer, socially engaged, easily provoked." style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <button id="createCharacterButton" class="btn" type="button">Create character</button>
+                <button id="setDefaultCharacterButton" class="btn" type="button">Set default</button>
+                <button id="archiveCharacterButton" class="btn" type="button">Archive</button>
+            </div>
         </div>
     </div>
 
@@ -35,6 +61,15 @@
             <label for="activeRunSelect">Join active run</label>
             <select id="activeRunSelect" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></select>
             <button id="joinRunButton" class="btn" type="button" style="margin-top: 0.75rem;">Join run</button>
+        </div>
+        <div>
+            <label for="saveSlotSelect">Save slot / bookmark</label>
+            <select id="saveSlotSelect" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></select>
+            <div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap;">
+                <button id="saveCurrentRunButton" class="btn" type="button">Save current run</button>
+                <button id="loadSavedRunButton" class="btn" type="button">Join saved run</button>
+                <button id="deleteSaveSlotButton" class="btn" type="button">Delete slot</button>
+            </div>
         </div>
     </div>
 
