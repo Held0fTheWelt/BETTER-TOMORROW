@@ -61,9 +61,9 @@ Claude Opus:            $15.00 per 1M tokens
 
 ## Implementation
 
-**Files**: Phase 4 created these files:
-- `claudeclockwork/core/budgeting/token_budget.py`
-- `claudeclockwork/core/budgeting/cost_tracker.py`
+**Files**: Phase 4 created token budgeting and cost tracking modules:
+- `token_budget.py`
+- `cost_tracker.py`
 - Integration in `TaskExecutor`
 - CLI commands: `show-budget`, `show-costs`
 
