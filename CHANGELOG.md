@@ -67,6 +67,37 @@ All four gaps in the News/Wiki auto-suggestions feature corrected. Suggestions n
 
 ---
 
+## [0.0.35] - 2026-03-18
+
+### Writers Room integration
+
+- Adopted a shared “administration-style” layout for the Writers Room UI.
+- Added Writers Room login that authenticates via the backend API (`POST /api/v1/auth/login`) and stores the JWT in the Writers Room session.
+- Load configuration from the repository root `.env` (including `OPENAI_API_KEY` and `BACKEND_API_URL`).
+- Added a favicon link that reuses the Writers Room `static/favicon.ico`.
+- Improved offline/diagnostic behavior when the `openai` dependency is missing.
+
+### Runtime slash command
+
+- Implemented the `/runtime` slash command workflow (Tasks 1–6).
+- Added runtime integration tests and user documentation for the `/runtime` command.
+- Added design/implementation documentation to support the runtime workflow.
+
+### Suggested discussions correctness (docs + tests)
+
+- Corrected News/Wiki suggested-thread reason-label behavior and ensured the UI uses the same reason values as the backend.
+- Updated API docs/Postman examples so they match the implemented suggested-thread payload fields and route shape (including Wiki suggested-threads).
+- Strengthened backend tests to cover deterministic ordering, duplicate exclusion, exclusion of primary discussion / manually related threads, hidden/private thread filtering, and truthful reason labels.
+
+### Backend architecture cleanup
+
+- Implemented backend architecture separation improvements.
+- Integrated `TaskExecutor` into the Flask backend to support the runtime workflow.
+
+### Removed
+
+- Removed redundant/unused runtime analysis/request files that were no longer part of the active workflow.
+
 ## [0.0.33] - 2026-03-15
 
 ### Narrow Follow-up: News/Wiki Auto-Suggestions & Documentation (Phase 6)
