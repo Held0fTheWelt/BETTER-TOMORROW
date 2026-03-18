@@ -144,6 +144,8 @@ class RuntimeManager:
                 current_room_id=role.initial_room_id,
                 account_id=account_id_or_none(owner_account_id),
                 character_id=owner_character_id,
+                seat_owner_account_id=account_id_or_none(owner_account_id),
+                seat_owner_display_name=owner_display_name,
                 seat_owner=owner_account_id or owner_display_name,
             )
             instance.participants[participant.id] = participant
@@ -191,6 +193,8 @@ class RuntimeManager:
             current_room_id=role.initial_room_id,
             account_id=account_id_or_none(account_id),
             character_id=character_id,
+            seat_owner_account_id=account_id_or_none(account_id),
+            seat_owner_display_name=display_name,
             seat_owner=account_id or display_name,
         )
         instance.participants[participant.id] = participant
@@ -214,7 +218,7 @@ class RuntimeManager:
                     if display_name and participant.display_name != display_name:
                         participant.display_name = display_name
                     return participant
-            if not account_id and participant.seat_owner == display_name:
+            if not account_id and participant.seat_owner_display_name == display_name:
                 return participant
         return None
 

@@ -79,7 +79,13 @@ function renderSelectOptions() {
 
 function currentRoom() {
   if (!state.snapshot) return null;
-  return state.snapshot.rooms.find(room => room.id === state.snapshot.viewer_room_id) || null;
+  if (state.snapshot.current_room) {
+    return state.snapshot.current_room;
+  }
+  if (Array.isArray(state.snapshot.rooms)) {
+    return state.snapshot.rooms.find(room => room.id === state.snapshot.viewer_room_id) || null;
+  }
+  return null;
 }
 
 function renderTokenButtonList(container, items, emptyText) {
@@ -99,7 +105,7 @@ function renderSnapshot(snapshot) {
 
     renderTokenButtonList(
       el.exitList,
-      room.exits.map(exit => `
+      (room.exits || []).map(exit => `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
           <span>${exit.label}</span>
           <button data-room="${exit.target_room_id}" class="move-button btn">Go</button>
@@ -118,21 +124,27 @@ function renderSnapshot(snapshot) {
       'No props in this room.'
     );
 
-    const occupants = snapshot.room_occupants[room.id] || [];
+    const occupants = snapshot.visible_occupants || snapshot.room_occupants?.[room.id] || [];
     renderTokenButtonList(
       el.occupantList,
       occupants.map(occupant => `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
-          <span>${occupant.display_name}</span>
+          <span>${occupant.display_name}${occupant.is_self ? ' (you)' : ''}</span>
           <small>${occupant.mode}</small>
         </div>`),
       'Nobody else is here.'
     );
+  } else {
+    el.roomTitle.textContent = 'No room';
+    el.roomDescription.textContent = 'Create or join a run to begin.';
+    renderTokenButtonList(el.exitList, [], 'No exits from here.');
+    renderTokenButtonList(el.propList, [], 'No props in this room.');
+    renderTokenButtonList(el.occupantList, [], 'Nobody else is here.');
   }
 
   renderTokenButtonList(
     el.actionList,
-    snapshot.available_actions.map(action => `
+    (snapshot.available_actions || []).map(action => `
       <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
         <span>${action.label}</span>
         <button data-action="${action.id}" class="action-button btn">Use</button>
@@ -140,9 +152,9 @@ function renderSnapshot(snapshot) {
     'No scripted actions available here.'
   );
 
-  el.transcript.innerHTML = snapshot.transcript_tail.map(entry => `
+  el.transcript.innerHTML = (snapshot.transcript_tail || []).map(entry => `
     <div>
-      <div style="font-size:0.8rem; opacity:0.75;">${new Date(entry.at).toLocaleTimeString()}${entry.actor ? ` • ${entry.actor}` : ''}</div>
+      <div style="font-size:0.8rem; opacity:0.75;">${new Date(entry.at).toLocaleTimeString()}${entry.actor ? ` • ${entry.actor}` : ''}${entry.room_id ? ` • ${entry.room_id}` : ''}</div>
       <div>${entry.text}</div>
     </div>
   `).join('');
