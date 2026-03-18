@@ -47,7 +47,7 @@ To test with a local backend:
 ```bash
 # Set the environment variable before starting the Frontend
 export BACKEND_API_URL=http://127.0.0.1:5000
-python administration-tool/app.py
+python administration-tool/run.py
 ```
 
 Or in `.env`:
