@@ -425,8 +425,16 @@ def community():
 @web_bp.route("/game-menu")
 @require_web_login
 def game_menu():
-    """Game menu (placeholder); requires logged-in session."""
-    return render_template("game_menu.html")
+    """Game launcher page backed by the existing Flask login/session."""
+    uid = session.get("user_id")
+    user = db.session.get(User, int(uid)) if uid else None
+    play_public_url = current_app.config.get("PLAY_SERVICE_PUBLIC_URL")
+    return render_template(
+        "game_menu.html",
+        current_user=user,
+        play_service_configured=bool(play_public_url),
+        play_service_public_url=play_public_url,
+    )
 
 
 @web_bp.route("/dashboard")

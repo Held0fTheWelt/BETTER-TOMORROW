@@ -99,6 +99,17 @@ class Config:
     SUPPORTED_LANGUAGES = ["de", "en"]
     DEFAULT_LANGUAGE = "de"
 
+
+    # Play service integration
+    PLAY_SERVICE_INTERNAL_URL = os.environ.get("PLAY_SERVICE_INTERNAL_URL", "").strip() or None
+    PLAY_SERVICE_PUBLIC_URL = (
+        os.environ.get("PLAY_SERVICE_PUBLIC_URL", "").strip()
+        or PLAY_SERVICE_INTERNAL_URL
+    )
+    PLAY_SERVICE_SHARED_SECRET = os.environ.get("PLAY_SERVICE_SHARED_SECRET", "").strip() or None
+    PLAY_SERVICE_INTERNAL_API_KEY = os.environ.get("PLAY_SERVICE_INTERNAL_API_KEY", "").strip() or None
+    GAME_TICKET_TTL_SECONDS = int(os.environ.get("GAME_TICKET_TTL_SECONDS", "300"))
+
     # n8n integration: webhook URL for triggering translation jobs; secret for signing payloads; service token for n8n callbacks.
     N8N_WEBHOOK_URL = os.environ.get("N8N_WEBHOOK_URL", "").strip() or None
     N8N_WEBHOOK_SECRET = os.environ.get("N8N_WEBHOOK_SECRET", "").strip() or None

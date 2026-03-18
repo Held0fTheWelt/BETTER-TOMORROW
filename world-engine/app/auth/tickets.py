@@ -4,11 +4,10 @@ import base64
 import hashlib
 import hmac
 import json
-import os
 import time
 from typing import Any
 
-SECRET = os.getenv("PLAY_SERVICE_SECRET", "change-me-for-production")
+from app.config import PLAY_SERVICE_SECRET
 
 
 class TicketError(Exception):
@@ -17,7 +16,7 @@ class TicketError(Exception):
 
 class TicketManager:
     def __init__(self, secret: str | None = None) -> None:
-        self.secret = (secret or SECRET).encode("utf-8")
+        self.secret = (secret or PLAY_SERVICE_SECRET).encode("utf-8")
 
     def issue(self, payload: dict[str, Any], ttl_seconds: int = 3600) -> str:
         body = {

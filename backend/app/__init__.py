@@ -1,5 +1,6 @@
 import logging
 import os
+from urllib.parse import urlparse
 from flask import jsonify, render_template, request
 from flask_wtf.csrf import CSRFProtect
 
@@ -86,13 +87,21 @@ def create_app(config_object=None):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        connect_sources = ["'self'", "https:"]
+        play_service_public_url = (app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").strip()
+        if play_service_public_url:
+            parsed = urlparse(play_service_public_url)
+            if parsed.scheme and parsed.netloc:
+                connect_sources.append(f"{parsed.scheme}://{parsed.netloc}")
+                ws_scheme = "wss" if parsed.scheme == "https" else "ws"
+                connect_sources.append(f"{ws_scheme}://{parsed.netloc}")
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "img-src 'self' data: https:; "
             "font-src 'self' https://fonts.gstatic.com; "
-            "connect-src 'self' https:; "
+            f"connect-src {' '.join(connect_sources)}; "
             "object-src 'none'; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "

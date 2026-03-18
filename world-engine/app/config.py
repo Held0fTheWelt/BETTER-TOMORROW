@@ -7,4 +7,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "app" / "var"
 RUN_STORE_DIR = DATA_DIR / "runs"
 APP_TITLE = os.getenv("APP_TITLE", "World of Shadows Play Service Prototype")
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
+PLAY_SERVICE_SECRET = os.getenv("PLAY_SERVICE_SECRET", "change-me-for-production")
+PLAY_SERVICE_INTERNAL_API_KEY = os.getenv("PLAY_SERVICE_INTERNAL_API_KEY", "")

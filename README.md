@@ -174,3 +174,23 @@ docker compose exec backend flask db upgrade
 - **Admin logs:** `GET /api/v1/admin/logs` (admin only; query: q, category, status, date_from, date_to, page, limit), `GET /api/v1/admin/logs/export` (admin only; CSV). Dashboard uses session-authenticated `/dashboard/api/logs` and `/dashboard/api/logs/export` (admin only).
 
 **Roles:** Default roles are user, moderator, editor, admin; admins can manage roles via the Roles CRUD API. New registrations get role **user**. Editor and admin can write news; only **admin** can access user list, user delete, roles CRUD, and activity logs API. Role checks are centralized (`user.is_admin`, `user.has_role(...)`, `require_web_admin`). Activity logging is done via `log_activity(...)`; auth, account, news, and admin actions produce structured entries visible in the admin dashboard Logs tab.
+
+
+## Play service integration
+
+The repository now includes a first backend-to-play-service integration path:
+
+- `/game-menu` is no longer just a placeholder. It acts as a launcher UI.
+- The Flask backend stays responsible for the logged-in user session / JWT identity.
+- The backend proxies template and run catalog calls to the play service.
+- The backend requests join context from the play service and signs the final short-lived WebSocket ticket itself.
+- The browser then connects directly to the play service over WebSocket with that ticket.
+
+Required environment variables:
+
+- `PLAY_SERVICE_INTERNAL_URL`
+- `PLAY_SERVICE_PUBLIC_URL`
+- `PLAY_SERVICE_SHARED_SECRET`
+- optional `PLAY_SERVICE_INTERNAL_API_KEY`
+
+This keeps your existing Flask auth as the source of truth while letting the play service remain a separate runtime.
