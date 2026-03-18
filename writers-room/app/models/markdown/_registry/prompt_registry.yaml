@@ -66,3 +66,37 @@ implementations:
   file: implementations/god_of_carnage/scene_opening_quick.md
 - id: implementation.god_of_carnage.scene.opening.director
   file: implementations/god_of_carnage/scene_opening_director.md
+- id: implementation.god_of_carnage.scenario.core
+  file: implementations/god_of_carnage/scenario_core.md
+- id: implementation.god_of_carnage.canon_adaptation_map
+  file: implementations/god_of_carnage/canon_adaptation_map.yaml
+- id: implementation.god_of_carnage.relationship_map
+  file: implementations/god_of_carnage/relationship_map.md
+- id: implementation.god_of_carnage.start_stack.quick
+  file: implementations/god_of_carnage/start_stack_quick.md
+- id: implementation.god_of_carnage.start_stack.director
+  file: implementations/god_of_carnage/start_stack_director.md
+- id: implementation.god_of_carnage.location.living_room
+  file: implementations/god_of_carnage/locations/living_room.md
+- id: implementation.god_of_carnage.location.hallway
+  file: implementations/god_of_carnage/locations/hallway.md
+- id: implementation.god_of_carnage.location.kitchen
+  file: implementations/god_of_carnage/locations/kitchen.md
+- id: implementation.god_of_carnage.location.bathroom
+  file: implementations/god_of_carnage/locations/bathroom.md
+- id: implementation.god_of_carnage.scene.s01_arrival_and_statement
+  file: implementations/god_of_carnage/scenes/s01_arrival_and_statement.md
+- id: implementation.god_of_carnage.scene.s02_first_departure_failure
+  file: implementations/god_of_carnage/scenes/s02_first_departure_failure.md
+- id: implementation.god_of_carnage.scene.s03_phone_intrusions
+  file: implementations/god_of_carnage/scenes/s03_phone_intrusions.md
+- id: implementation.god_of_carnage.scene.s04_private_hypocrisy_reveal
+  file: implementations/god_of_carnage/scenes/s04_private_hypocrisy_reveal.md
+- id: implementation.god_of_carnage.scene.s05_physical_breakpoint
+  file: implementations/god_of_carnage/scenes/s05_physical_breakpoint.md
+- id: implementation.god_of_carnage.scene.s06_rum_and_realignment
+  file: implementations/god_of_carnage/scenes/s06_rum_and_realignment.md
+- id: implementation.god_of_carnage.scene.s07_total_breakdown
+  file: implementations/god_of_carnage/scenes/s07_total_breakdown.md
+- id: implementation.god_of_carnage.scene.s08_unresolved_ring
+  file: implementations/god_of_carnage/scenes/s08_unresolved_ring.md

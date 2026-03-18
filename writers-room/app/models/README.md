@@ -13,3 +13,10 @@ This pack separates **templates** from **implementations**.
 - `base` links fast or deep variants back to their conceptual root.
 - `inject_with` lists useful companion prompts for runtime stacking.
 - `depends_on` marks prompts that usually need to be loaded first.
+
+
+## Added in V2
+- Canon/adaptation map for scenario aliasing
+- Relationship map for chamber-play alliance shifts
+- Dedicated quick and director runtime stacks for the scenario
+- Expanded God of Carnage implementation split into characters, locations, and scene beats

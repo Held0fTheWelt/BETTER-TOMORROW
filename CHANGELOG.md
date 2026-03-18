@@ -98,6 +98,33 @@ All four gaps in the News/Wiki auto-suggestions feature corrected. Suggestions n
 
 - Removed redundant/unused runtime analysis/request files that were no longer part of the active workflow.
 
+---
+## [0.1.3] - 2026-03-18
+
+### writers-room: god_of_carnage model expansion
+- Expanded the god_of_carnage writers-room implementation with new/updated model definitions for characters, locations, scenes, and scenario bootstrapping.
+- Added/updated relationship and adaptation maps to keep cross-entity references consistent in the writers-room model layer.
+- Updated the prompt registry (`writers-room/app/models/markdown/_registry/prompt_registry.yaml`) to include the newly added content/model definitions for offline/structured operation.
+
+---
+## [0.1.2] - 2026-03-18
+
+### world-engine extension
+- Extended world-engine integration with updated HTTP/WS API surfaces.
+- Refined runtime management logic (engine/runtime manager/models) for the Flask play integration workflow.
+- Updated auth ticket handling and related configuration/runtime models.
+- Added `PATCH_NOTES_FLASK_PLAY_INTEGRATION.md` and strengthened world-engine test coverage for API/runtime manager behavior.
+
+---
+## [0.1.1] - 2026-03-18
+
+### writers-room integration
+- Adopted a shared “administration-style” layout for the Writers Room UI.
+- Added Writers Room login that authenticates via the backend API (`POST /api/v1/auth/login`) and stores the JWT in the Writers Room session.
+- Loads configuration from the repository root `.env` (including `OPENAI_API_KEY` and `BACKEND_API_URL`).
+- Added a favicon link that reuses the Writers Room `static/favicon.ico`.
+- Improved offline/diagnostic behavior when the `openai` dependency is missing.
+
 ## [0.0.33] - 2026-03-15
 
 ### Narrow Follow-up: News/Wiki Auto-Suggestions & Documentation (Phase 6)
