@@ -60,6 +60,7 @@ BACKEND_BASE_URL = (
 # API key from environment (set OPENAI_API_KEY or create a .env file)
 api_key = os.environ.get("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key) if (api_key and OpenAI) else None
+openai_available = OpenAI is not None
 
 if not api_key:
     print("OPENAI_API_KEY not found. Oracle will run in offline mode.")
@@ -81,7 +82,12 @@ def index():
             # Step 3 & 4: An OpenAI senden, Antwort mit „spicy“ Oracle-Prompt
             answer = ask_oracle(question)
         elif question and not client:
-            answer = "🔑 Set OPENAI_API_KEY in your environment, then restart the app."
+            if not api_key:
+                answer = "🔑 Set OPENAI_API_KEY in your environment, then restart the app."
+            elif not openai_available:
+                answer = "Missing dependency: install `openai` (run `pip install -r requirements.txt`) and restart the app."
+            else:
+                answer = "Login failed (oracle client not initialized). Restart the app."
         else:
             answer = "You didn't ask anything. Try again!"
     return render_template("index.html", answer=answer)
