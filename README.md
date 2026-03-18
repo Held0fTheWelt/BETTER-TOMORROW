@@ -67,7 +67,7 @@ Start the backend:
 ```bash
 # From backend/
 export FLASK_APP=run:app   # or set in .env
-python app.py
+python run.py
 # or: flask run
 ```
 
@@ -78,7 +78,7 @@ Default: **http://127.0.0.1:5000**. Health: `GET /api/v1/health`.
 ```bash
 cd administration-tool
 pip install -r requirements.txt
-python app.py
+python run.py
 ```
 
 Default: **http://127.0.0.1:5001**. Open in browser; login/register/dashboard links point to the backend (using **BACKEND_API_URL**). News list and detail load data from `GET /api/v1/news` and `GET /api/v1/news/<id>`. **Management area:** `/manage` (staff login at `/manage/login`); JWT in sessionStorage; news, user admin (admin only), wiki, forum. See `docs/runbook.md` for management and wiki API.
