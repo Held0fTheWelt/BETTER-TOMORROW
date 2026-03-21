@@ -1109,3 +1109,19 @@ Release 0.0.9 focuses on the new role and access-control model (user/moderator/a
 
 
 
+
+## [Phase Audit - 2026-03-21]
+
+### Backend Fixes
+- Added PLAY_SERVICE_REQUEST_TIMEOUT configuration (default 30s)
+- Added GAME_TICKET_TTL_SECONDS bounds validation (5min-24h)
+- Added URL validation for PLAY_SERVICE_INTERNAL_URL
+- Made game_service timeout configurable instead of hardcoded
+- Added deprecation note for PLAY_SERVICE_SECRET fallback
+
+### Integration Improvements
+- Backend ↔ World-Engine timeout is now configurable
+- TTL validation prevents accidental misconfiguration
+- URL validation prevents silent connection failures
+- All changes are backward-compatible (defaults provided)
+
