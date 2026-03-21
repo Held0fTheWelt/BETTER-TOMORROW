@@ -31,6 +31,19 @@ def _parse_cors_origins():
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+def _validate_service_url(url: str | None) -> str | None:
+    """Validate internal service URL (must be valid http/https if provided)."""
+    if not url:
+        return None
+    url = url.strip()
+    if url.startswith(("http://", "https://")):
+        return url
+    # If set but invalid, log warning and reject
+    import warnings
+    warnings.warn(f"Invalid service URL (must start with http:// or https://): {url}")
+    return None
+
+
 class Config:
     """Base config for production. SECRET_KEY must be set via environment."""
 
@@ -86,14 +99,29 @@ class Config:
 
     # Play service bridge configuration.
     PLAY_SERVICE_PUBLIC_URL = os.environ.get("PLAY_SERVICE_PUBLIC_URL", "").strip() or None
-    PLAY_SERVICE_INTERNAL_URL = os.environ.get("PLAY_SERVICE_INTERNAL_URL", "").strip() or None
+    PLAY_SERVICE_INTERNAL_URL = _validate_service_url(os.environ.get("PLAY_SERVICE_INTERNAL_URL", ""))
+
+    # Timeout for internal service calls (in seconds).
+    PLAY_SERVICE_REQUEST_TIMEOUT = int(os.environ.get("PLAY_SERVICE_REQUEST_TIMEOUT", "30"))
+
+    # Prefer PLAY_SERVICE_SHARED_SECRET; PLAY_SERVICE_SECRET is deprecated but supported for migration.
     PLAY_SERVICE_SHARED_SECRET = (
         os.environ.get("PLAY_SERVICE_SHARED_SECRET")
         or os.environ.get("PLAY_SERVICE_SECRET")
         or ""
     ).strip() or None
     PLAY_SERVICE_INTERNAL_API_KEY = os.environ.get("PLAY_SERVICE_INTERNAL_API_KEY", "").strip() or None
-    GAME_TICKET_TTL_SECONDS = int(os.environ.get("GAME_TICKET_TTL_SECONDS", "300"))
+
+    # Game ticket TTL with bounds validation (5 min to 24 hours).
+    _ttl_raw = os.environ.get("GAME_TICKET_TTL_SECONDS", "300")
+    try:
+        _ttl_int = int(_ttl_raw)
+        GAME_TICKET_TTL_SECONDS = max(300, min(86400, _ttl_int))  # Clamp to 5min-24h
+        if _ttl_int != GAME_TICKET_TTL_SECONDS:
+            import warnings
+            warnings.warn(f"GAME_TICKET_TTL_SECONDS clamped from {_ttl_int} to {GAME_TICKET_TTL_SECONDS}")
+    except (ValueError, TypeError):
+        GAME_TICKET_TTL_SECONDS = 300  # Default to 5 minutes if invalid
 
 
 class DevelopmentConfig(Config):
